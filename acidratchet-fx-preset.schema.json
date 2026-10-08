@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "acidratchet.fx-preset.v1",
+  "title": "ACIDRATCHET FX Preset",
+  "type": "object",
+  "required": ["schema", "version", "id", "name", "engine", "parameters", "macros", "routing"],
+  "properties": {
+    "schema": { "const": "acidratchet.fx-preset" },
+    "version": { "const": 1 },
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "engine": { "enum": ["echo", "space", "corrosion", "pulse"] },
+    "parameters": { "type": "object" },
+    "macros": {
+      "type": "object",
+      "required": ["character", "motion", "depth", "mix"],
+      "properties": {
+        "character": { "type": "number", "minimum": 0, "maximum": 1 },
+        "motion": { "type": "number", "minimum": 0, "maximum": 1 },
+        "depth": { "type": "number", "minimum": 0, "maximum": 1 },
+        "mix": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "routing": {
+      "type": "object",
+      "required": ["voiceA", "voiceB", "drums", "samples"],
+      "properties": {
+        "voiceA": { "type": "number", "minimum": 0, "maximum": 1 },
+        "voiceB": { "type": "number", "minimum": 0, "maximum": 1 },
+        "drums": { "type": "number", "minimum": 0, "maximum": 1 },
+        "samples": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "tags": { "type": "array", "items": { "type": "string" }, "maxItems": 12 },
+    "updatedAt": { "type": "string" }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="de">
+<head>
+<script>/* PWA: im Home-Screen-Modus Suite-Links im selben Fenster oeffnen (sonst getrennter Speicher) */(function(){var sa=window.navigator.standalone===true||(window.matchMedia&&matchMedia("(display-mode: standalone)").matches);if(!sa)return;var o=window.open;window.open=function(u){if(typeof u==="string"&&/^\.\//.test(u)){location.href=u;return window;}return o.apply(window,arguments);};})();</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>ACIDRATCHET FX LAB v0.1</title>
+<meta name="author" content="Manfred Foissner">
+<style>
+:root{--bg:#050604;--panel:#11140f;--panel2:#0b0d0a;--line:#2a3023;--linehi:#44522f;--lime:#aef022;--lime2:#d8ff73;--text:#d8e0ce;--muted:#7e8974;--red:#ff5151;--amber:#ffb54a;--blue:#74c9ff;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}body{margin:0;background:radial-gradient(100% 70% at 50% -10%,#17200f 0%,var(--bg) 58%);color:var(--text);font-family:var(--mono);min-height:100vh}.shell{display:grid;grid-template-columns:280px 1fr;min-height:100vh}.side{background:linear-gradient(180deg,#11150e,#070806);border-right:1px solid var(--line);padding:18px 14px;position:sticky;top:0;height:100vh;overflow:auto}.brand{font-weight:900;letter-spacing:2px;color:var(--lime);font-size:20px;text-shadow:0 0 18px rgba(174,240,34,.28)}.brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:1.4px;margin-top:6px}.sub{font-size:11px;color:var(--muted);line-height:1.5;margin:12px 0 14px}.preset-list{display:grid;gap:6px}.preset{width:100%;text-align:left;background:#0a0c08;border:1px solid var(--line);color:var(--text);border-radius:7px;padding:10px;cursor:pointer;font-family:inherit}.preset:hover,.preset.on{border-color:var(--lime);color:var(--lime);box-shadow:0 0 16px rgba(174,240,34,.12)}.preset b{display:block;font-size:11px;letter-spacing:.8px}.preset span{font-size:9px;color:var(--muted);text-transform:uppercase}.side-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 0}.main{padding:14px 16px 60px;max-width:1500px;width:100%;margin:0 auto}.top{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:12px}.top h1{font-size:18px;letter-spacing:2px;margin:0;color:var(--lime)}.status{font-size:10px;color:var(--muted);padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:#080a07}.card{background:linear-gradient(145deg,rgba(22,25,18,.98),rgba(8,10,7,.98));border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:10px;box-shadow:0 12px 26px rgba(0,0,0,.34)}.card h2{margin:0 0 11px;color:var(--lime);font-size:12px;letter-spacing:1.8px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.field{background:#090b08;border:1px solid #242a20;border-radius:8px;padding:9px}.field label{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);letter-spacing:.6px;margin-bottom:7px}.field output{color:var(--lime)}input[type=range]{width:100%;accent-color:var(--lime)}input[type=text],input[type=number],select{width:100%;background:#070906;border:1px solid var(--linehi);color:var(--text);padding:9px;border-radius:6px;font-family:inherit}button{background:#11150e;border:1px solid var(--linehi);color:var(--text);padding:9px 11px;border-radius:7px;font-family:inherit;font-size:10px;letter-spacing:.5px;cursor:pointer}button:hover{border-color:var(--lime);color:var(--lime)}button.primary{background:linear-gradient(#caff56,#7cbd13);color:#071000;border-color:#d7ff86;font-weight:900}button.danger{border-color:#743737;color:#ffaaaa}.actions{display:flex;gap:7px;flex-wrap:wrap}.engine-badge{display:inline-block;border:1px solid var(--linehi);border-radius:999px;padding:4px 8px;font-size:9px;color:var(--blue);text-transform:uppercase}.macro-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.macro{background:#080a07;border:1px solid var(--line);border-radius:9px;padding:12px;text-align:center}.macro b{display:block;font-size:10px;letter-spacing:1px;color:var(--lime);margin-bottom:8px}.macro output{font-size:16px;color:var(--text)}.preview-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}.meter{height:10px;border-radius:99px;background:#070807;border:1px solid var(--line);overflow:hidden}.meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--lime),var(--amber),var(--red));transition:width .08s}.sample-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.sample{background:#080a07;border:1px solid var(--line);border-radius:9px;padding:10px;min-height:130px}.sample h3{font-size:10px;color:var(--lime);margin:0 0 7px}.sample-name{font-size:10px;color:var(--text);min-height:29px;line-height:1.4}.sample .actions{margin-top:8px}.sample button{padding:7px;font-size:9px}.hint{font-size:10px;color:var(--muted);line-height:1.55}.routing{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.macro-note{font-size:9px;color:var(--muted);margin-top:8px}.deep-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px}.divider{height:1px;background:var(--line);margin:12px 0}.footer{font-size:9px;color:var(--muted);text-align:center;margin-top:18px;letter-spacing:1px}@media(max-width:850px){.shell{grid-template-columns:1fr}.side{position:relative;height:auto;border-right:0;border-bottom:1px solid var(--line)}.macro-grid,.routing,.sample-grid{grid-template-columns:1fr 1fr}.main{padding:10px}.preview-row{grid-template-columns:1fr}}@media(max-width:520px){.macro-grid,.routing,.sample-grid{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}}
+</style>
+<style>
+.arnav{--arnav-bg:#0a0c09ee;--arnav-line:#2b3324;--arnav-linehi:#455349;--arnav-pan:#12150f;--arnav-acc:#c8f04a;--arnav-dim:#8b957e;--arnav-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+.arnav{position:sticky;top:0;z-index:50;display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 10px;background:var(--arnav-bg);border-bottom:1px solid var(--arnav-line);backdrop-filter:blur(6px);font-family:var(--arnav-mono);scrollbar-width:none}
+.arnav::-webkit-scrollbar{display:none}
+.arnav a{flex:0 0 auto;padding:7px 11px;border:1px solid var(--arnav-linehi);border-radius:7px;background:var(--arnav-pan);font-size:11px;letter-spacing:.06em;color:var(--arnav-dim);text-decoration:none;white-space:nowrap}
+.arnav a.on{color:#0a0c09;background:var(--arnav-acc);border-color:var(--arnav-acc);font-weight:700}
+@media(min-width:851px){.side{top:44px;height:calc(100vh - 44px)}}
+</style>
+</head>
+<body>
+<nav class="arnav">
+  <a href="./index.html">MF79 SYNTH</a>
+  <a href="./ACIDRATCHET_TD3MO_TRANSLATOR.html">TRANSLATOR</a>
+  <a href="./ACIDRATCHET_FX_LAB.html" class="on">FX LAB</a>
+  <a href="./ACIDRATCHET_SONGBOOK.html">SONGBOOK</a>
+</nav>
+<div class="shell">
+  <aside class="side">
+    <div class="brand">ACIDRATCHET<br>FX LAB <small>V0.1 · SHARED DSP CORE</small></div>
+    <div class="sub">Effekte tief modellieren, als Preset sichern und direkt an ACIDRATCHET-MF79 übergeben. Die Performance-Oberfläche bleibt bewusst kompakt.</div>
+    <div class="side-actions"><button id="newPreset">+ NEU</button><button id="duplicatePreset">DUPLIKAT</button></div>
+    <input id="search" type="text" placeholder="Preset suchen …">
+    <div class="divider"></div>
+    <div class="preset-list" id="presetList"></div>
+  </aside>
+
+  <main class="main">
+    <div class="top"><h1 id="title">FX PRESET</h1><div class="status" id="status">bereit</div></div>
+
+    <section class="card">
+      <h2>PRESET & ENGINE</h2>
+      <div class="grid">
+        <div class="field"><label><span>Name</span></label><input id="name" type="text"></div>
+        <div class="field"><label><span>Engine</span></label><select id="engine"><option value="echo">ECHO LAB</option><option value="space">SPACE LAB</option><option value="corrosion">CORROSION LAB</option><option value="pulse">PULSE / RATCHET LAB</option></select></div>
+        <div class="field"><label><span>BPM</span><output id="bpmOut">132</output></label><input id="bpm" type="range" min="80" max="180" value="132"></div>
+        <div class="field"><label><span>Aktiv</span></label><span class="engine-badge" id="engineBadge">ECHO</span></div>
+      </div>
+      <div class="actions" style="margin-top:10px"><button class="primary" id="savePreset">PRESET SPEICHERN</button><button id="sendPreset">PRESET → ACIDRATCHET</button><button id="exportPreset">JSON EXPORT</button><button id="importPreset">JSON IMPORT</button><input id="importFile" type="file" accept=".json,application/json" hidden><button class="danger" id="deletePreset">LÖSCHEN</button></div>
+    </section>
+
+    <section class="card">
+      <h2>PERFORMANCE VIEW · 4 MAKROS</h2>
+      <div class="macro-grid" id="macroGrid"></div>
+      <div class="macro-note">Diese vier Werte sind die Live-Bedienung in ACIDRATCHET. Die tiefen Parameter darunter bleiben im FX LAB.</div>
+    </section>
+
+    <section class="card">
+      <h2>DEEP EDIT</h2>
+      <div class="deep-grid" id="deepEdit"></div>
+    </section>
+
+    <section class="card">
+      <h2>ROUTING</h2>
+      <div class="routing" id="routing"></div>
+      <div class="hint" style="margin-top:9px">Voice A, Voice B, Drums und Samples besitzen eigene Sends. Pulse-Presets reduzieren den trockenen Anteil proportional, damit ein echter Gate-Eindruck entsteht.</div>
+    </section>
+
+    <section class="card">
+      <h2>INTERNES PREVIEW</h2>
+      <div class="preview-row">
+        <div><div class="meter"><i id="meterBar"></i></div><div class="hint" id="previewInfo" style="margin-top:7px">303-artige Testline + Kick. Das Preview nutzt denselben FX-Core wie ACIDRATCHET.</div></div>
+        <div class="actions"><button class="primary" id="previewPlay">▶ PREVIEW</button><button id="previewRestart">↻ RESTART</button><button id="previewDry">FX BYPASS</button></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>VOICE / SAMPLE BANK · 4 SLOTS</h2>
+      <div class="sample-grid" id="sampleGrid"></div>
+      <div class="hint" style="margin-top:10px">Aufnahme oder Audiodatei wird in IndexedDB gespeichert. Die Pattern- und Presetdaten enthalten nur die Sample-ID – keine Base64-Audioblöcke.</div>
+    </section>
+
+    <div class="footer">© 2026 Manfred Foissner · ACIDRATCHET FX LAB · Technology donor: WBM 5-303 · Core target: ACIDRATCHET-MF79</div>
+  </main>
+</div>
+
+<script src="./acidratchet-fx-core.js"></script>
+<script>
+(function(){'use strict';
+const $=id=>document.getElementById(id);
+const MACROS=[['character','CHARACTER'],['motion','MOTION'],['depth','DEPTH'],['mix','MIX']];
+const ROUTING=[['voiceA','VOICE A'],['voiceB','VOICE B'],['drums','DRUMS'],['samples','SAMPLES']];
+const PARAMS={
+ echo:[
+  {k:'time',l:'TIME',type:'select',opts:['1/16','1/8T','1/8','3/16','1/4']},
+  {k:'feedback',l:'FEEDBACK',min:0,max:.92,step:.01,fmt:v=>Math.round(v*100)+'%'},
+  {k:'tone',l:'TONE',min:600,max:12000,step:50,fmt:v=>Math.round(v)+' Hz'},
+  {k:'drive',l:'FEEDBACK DRIVE',min:0,max:.9,step:.01,fmt:v=>Math.round(v*100)+'%'},
+  {k:'lowCut',l:'LOW CUT',min:20,max:1200,step:10,fmt:v=>Math.round(v)+' Hz'},
+  {k:'mix',l:'BASE MIX',min:0,max:.95,step:.01,fmt:v=>Math.round(v*100)+'%'}],
+ space:[
+  {k:'size',l:'SIZE',min:.05,max:1,step:.01,fmt:v=>Math.round(v*100)+'%'},
+  {k:'decay',l:'DECAY',min:.25,max:8,step:.05,fmt:v=>Number(v).toFixed(2)+' s'},
+  {k:'damping',l:'DAMPING',min:700,max:18000,step:100,fmt:v=>Math.round(v)+' Hz'},
+  {k:'preDelay',l:'PRE-DELAY',min:0,max:.2,step:.001,fmt:v=>Math.round(v*1000)+' ms'},
+  {k:'lowCut',l:'LOW CUT',min:20,max:2500,step:10,fmt:v=>Math.round(v)+' Hz'},
+  {k:'mix',l:'BASE MIX',min:0,max:.95,step:.01,fmt:v=>Math.round(v*100)+'%'}],
+ corrosion:[
+  {k:'drive',l:'DRIVE',min:0,max:1,step:.01,fmt:v=>Math.round(v*100)+'%'},
+  {k:'fold',l:'FOLD',min:0,max:1,step:.01,fmt:v=>Math.round(v*100)+'%'},
+  {k:'bits',l:'BITS',min:3,max:16,step:1,fmt:v=>Math.round(v)},
+  {k:'asymmetry',l:'ASYMMETRY',min:-.35,max:.35,step:.01,fmt:v=>Number(v).toFixed(2)},
+  {k:'lowCut',l:'LOW CUT',min:20,max:3000,step:10,fmt:v=>Math.round(v)+' Hz'},
+  {k:'highCut',l:'HIGH CUT',min:600,max:18000,step:100,fmt:v=>Math.round(v)+' Hz'},
+  {k:'mix',l:'BASE MIX',min:0,max:.95,step:.01,fmt:v=>Math.round(v*100)+'%'}],
+ pulse:[
+  {k:'rate',l:'RATE',type:'select',opts:['1/8','1/16','1/16T','1/32']},
+  {k:'depth',l:'DEPTH',min:0,max:1,step:.01,fmt:v=>Math.round(v*100)+'%'},
+  {k:'floor',l:'FLOOR',min:0,max:.8,step:.01,fmt:v=>Math.round(v*100)+'%'},
+  {k:'shape',l:'SHAPE',type:'select',opts:['square','sawtooth','triangle','sine']},
+  {k:'tone',l:'TONE',min:700,max:18000,step:100,fmt:v=>Math.round(v)+' Hz'},
+  {k:'mix',l:'BASE MIX',min:0,max:1,step:.01,fmt:v=>Math.round(v*100)+'%'}]
+};
+var ARFX_BUILD_VERSION='0.1.0';
+if(typeof ARFX==='undefined'||ARFX.VERSION!==ARFX_BUILD_VERSION){
+  var arfxVersionMsg='FX Core Versionskonflikt: FX LAB erwartet '+ARFX_BUILD_VERSION+', geladen ist '+(typeof ARFX!=='undefined'?ARFX.VERSION:'kein ARFX')+' — acidratchet-fx-core.js prüfen.';
+  console.error(arfxVersionMsg);
+  window.addEventListener('DOMContentLoaded',function(){var st=document.getElementById('status');if(st)st.textContent=arfxVersionMsg;});
+}
+let library=ARFX.loadLibrary(), current=ARFX.getActivePreset(), filter='';
+let ctx=null,rack=null,previewMaster=null,previewDry=null,previewSend=null,previewPlaying=false,previewTimer=null,previewStep=0,nextTime=0,analyser=null,meterRaf=0,previewBypass=false;
+let recorder=null,recordChunks=[],recordSlot=-1,recordStream=null,sampleSlots=ARFX.samples.loadSlots();
+
+function status(t){$('status').textContent=t;}
+function selected(){return ARFX.normalizePreset(current)}
+function renderList(){
+ const q=filter.trim().toLowerCase(); $('presetList').innerHTML='';
+ library.filter(p=>!q||p.name.toLowerCase().includes(q)||p.engine.includes(q)).forEach(p=>{
+  const b=document.createElement('button');b.className='preset'+(p.id===current.id?' on':'');b.innerHTML='<b>'+esc(p.name)+'</b><span>'+esc(p.engine)+'</span>';
+  b.onclick=()=>{current=ARFX.normalizePreset(p);renderAll();applyRack();};$('presetList').appendChild(b);
+ });
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function renderMacro(){
+ $('macroGrid').innerHTML='';MACROS.forEach(([k,l])=>{const m=document.createElement('div');m.className='macro';m.innerHTML='<b>'+l+'</b><output id="mo-'+k+'">'+Math.round(current.macros[k]*100)+'</output><input id="m-'+k+'" type="range" min="0" max="100" value="'+Math.round(current.macros[k]*100)+'">';$('macroGrid').appendChild(m);$('m-'+k).oninput=e=>{current.macros[k]=+e.target.value/100;$('mo-'+k).value=e.target.value;applyRack(false)};});
+}
+function renderDeep(){
+ $('deepEdit').innerHTML='';(PARAMS[current.engine]||[]).forEach(spec=>{const f=document.createElement('div');f.className='field';let ctl='';
+  if(spec.type==='select')ctl='<select id="p-'+spec.k+'">'+spec.opts.map(v=>'<option value="'+v+'" '+(String(current.parameters[spec.k])===String(v)?'selected':'')+'>'+v.toUpperCase()+'</option>').join('')+'</select>';
+  else ctl='<input id="p-'+spec.k+'" type="range" min="'+spec.min+'" max="'+spec.max+'" step="'+spec.step+'" value="'+current.parameters[spec.k]+'">';
+  const val=spec.type==='select'?String(current.parameters[spec.k]).toUpperCase():spec.fmt(current.parameters[spec.k]);f.innerHTML='<label><span>'+spec.l+'</span><output id="po-'+spec.k+'">'+val+'</output></label>'+ctl;$('deepEdit').appendChild(f);
+  $('p-'+spec.k).oninput=e=>{let v=spec.type==='select'?e.target.value:+e.target.value;current.parameters[spec.k]=v;$('po-'+spec.k).value=spec.type==='select'?String(v).toUpperCase():spec.fmt(v);applyRack(false)};
+ });
+}
+function renderRouting(){
+ $('routing').innerHTML='';ROUTING.forEach(([k,l])=>{const f=document.createElement('div');f.className='field';f.innerHTML='<label><span>'+l+'</span><output id="ro-'+k+'">'+Math.round(current.routing[k]*100)+'%</output></label><input id="r-'+k+'" type="range" min="0" max="100" value="'+Math.round(current.routing[k]*100)+'">';$('routing').appendChild(f);$('r-'+k).oninput=e=>{current.routing[k]=+e.target.value/100;$('ro-'+k).value=e.target.value+'%';applyRack(false)};});
+}
+function renderAll(){
+ current=ARFX.normalizePreset(current);$('title').textContent=current.name;$('name').value=current.name;$('engine').value=current.engine;$('engineBadge').textContent=current.engine.toUpperCase();renderList();renderMacro();renderDeep();renderRouting();renderSamples();
+}
+function applyRack(setActive=true){
+ current.name=$('name').value||current.name; if(rack){rack.setPreset(current);rack.setBpm(+$('bpm').value);rack.setBypass(previewBypass);} if(setActive)ARFX.setActivePreset(current);$('title').textContent=current.name;
+}
+function engineChanged(){
+ const e=$('engine').value;current.engine=e;current.parameters=ARFX.util.copy(ARFX.ENGINE_DEFAULTS[e]);current.macros=ARFX.util.copy({character:.5,motion:.45,depth:.55,mix:.5});renderAll();applyRack();
+}
+function save(){current.name=$('name').value.trim()||'UNTITLED FX';current.updatedAt=new Date().toISOString();current=ARFX.upsertPreset(current);library=ARFX.loadLibrary();ARFX.setActivePreset(current);renderAll();status('Preset gespeichert');}
+function newPreset(){const e=$('engine').value||'echo';current=ARFX.normalizePreset({id:ARFX.util.uid('fx_user'),name:'NEW '+e.toUpperCase(),engine:e,parameters:ARFX.ENGINE_DEFAULTS[e]});renderAll();applyRack();$('name').select();}
+function duplicate(){const p=selected();p.id=ARFX.util.uid('fx_copy');p.name=p.name+' COPY';current=p;save();}
+function del(){if(ARFX.DEFAULT_PRESETS.some(p=>p.id===current.id))return alert('Werkspresets werden nicht gelöscht. Du kannst ein Duplikat bearbeiten.');if(!confirm('Preset wirklich löschen?'))return;library=ARFX.removePreset(current.id);current=library[0]||ARFX.DEFAULT_PRESETS[0];renderAll();applyRack();}
+function send(){save();ARFX.sendHandoff(current);status('An ACIDRATCHET gesendet');window.open('./index.html?fx=1','_blank');}
+function exportJson(){const blob=new Blob([JSON.stringify(selected(),null,2)],{type:'application/json'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=current.name.replace(/[^a-z0-9_-]+/gi,'_')+'.arfx.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1200)}
+function importJson(file){if(!file)return;const r=new FileReader();r.onload=()=>{try{const p=ARFX.normalizePreset(JSON.parse(r.result));p.id=ARFX.util.uid('fx_import');current=p;save();status('Preset importiert')}catch(e){alert('Import fehlgeschlagen: '+e.message)}};r.readAsText(file)}
+
+async function ensurePreview(){
+ if(ctx)return;ctx=new (window.AudioContext||window.webkitAudioContext)();previewMaster=ctx.createGain();previewMaster.gain.value=.62;const comp=ctx.createDynamicsCompressor();comp.threshold.value=-5;comp.ratio.value=8;comp.attack.value=.003;comp.release.value=.12;analyser=ctx.createAnalyser();analyser.fftSize=512;previewMaster.connect(comp);comp.connect(analyser);analyser.connect(ctx.destination);previewDry=ctx.createGain();previewSend=ctx.createGain();previewDry.connect(previewMaster);rack=ARFX.createRack(ctx,previewMaster,{preset:current,bpm:+$('bpm').value});previewSend.connect(rack.input);drawMeter();
+}
+function noteFreq(m){return 440*Math.pow(2,(m-69)/12)}
+function acidNote(t,m,accent,slide){
+ const osc=ctx.createOscillator(),flt=ctx.createBiquadFilter(),g=ctx.createGain(),sat=ctx.createWaveShaper();osc.type='sawtooth';osc.frequency.setValueAtTime(noteFreq(m),t);if(slide)osc.frequency.exponentialRampToValueAtTime(noteFreq(m+7),t+.12);flt.type='lowpass';flt.Q.value=15;flt.frequency.setValueAtTime(accent?6200:3600,t);flt.frequency.exponentialRampToValueAtTime(480,t+.16);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(accent?.56:.38,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+.19);sat.curve=(function(){const a=new Float32Array(1024);for(let i=0;i<a.length;i++){const x=i/(a.length-1)*2-1;a[i]=Math.tanh(x*2.4)}return a})();osc.connect(flt);flt.connect(sat);sat.connect(g);g.connect(previewDry);g.connect(previewSend);osc.start(t);osc.stop(t+.22);
+}
+function kick(t){const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.setValueAtTime(145,t);o.frequency.exponentialRampToValueAtTime(46,t+.08);g.gain.setValueAtTime(.72,t);g.gain.exponentialRampToValueAtTime(.0001,t+.24);o.connect(g);g.connect(previewDry);g.connect(previewSend);o.start(t);o.stop(t+.26)}
+function schedule(){if(!previewPlaying)return;const step=60/(+$('bpm').value)/4,notes=[33,33,45,33,36,33,40,33,33,45,33,36,38,33,45,40];while(nextTime<ctx.currentTime+.12){const i=previewStep%16;if(i%4===0)kick(nextTime);if(i!==6&&i!==14)acidNote(nextTime,notes[i],i%4===0||i===10,i===3||i===10);nextTime+=step;previewStep=(previewStep+1)%16;}}
+async function previewToggle(restart){await ensurePreview();if(ctx.state==='suspended')await ctx.resume();if(previewPlaying&&!restart){previewPlaying=false;clearInterval(previewTimer);previewTimer=null;$('previewPlay').textContent='▶ PREVIEW';return;}previewPlaying=true;previewStep=0;nextTime=ctx.currentTime+.06;if(previewTimer)clearInterval(previewTimer);previewTimer=setInterval(schedule,25);$('previewPlay').textContent='■ STOP';schedule()}
+function drawMeter(){if(!analyser)return;const d=new Uint8Array(analyser.frequencyBinCount);analyser.getByteFrequencyData(d);let s=0;for(const v of d)s+=v*v;const rms=Math.sqrt(s/d.length);$('meterBar').style.width=Math.min(100,rms/1.35)+'%';meterRaf=requestAnimationFrame(drawMeter)}
+
+function renderSamples(){
+ $('sampleGrid').innerHTML='';for(let i=0;i<4;i++){const slot=sampleSlots[i],d=document.createElement('div');d.className='sample';d.innerHTML='<h3>SLOT '+(i+1)+'</h3><div class="sample-name">'+(slot?esc(slot.name):'leer')+'</div><div class="actions"><button data-act="rec">● REC</button><button data-act="play">▶ PLAY</button><button data-act="import">IMPORT</button><button data-act="del" class="danger">DEL</button><input type="file" accept="audio/*" hidden></div>';$('sampleGrid').appendChild(d);const inp=d.querySelector('input');d.querySelector('[data-act=rec]').onclick=()=>toggleRecord(i);d.querySelector('[data-act=play]').onclick=()=>playSample(i);d.querySelector('[data-act=import]').onclick=()=>inp.click();d.querySelector('[data-act=del]').onclick=()=>deleteSampleSlot(i);inp.onchange=e=>importSample(i,e.target.files[0]);}
+}
+async function toggleRecord(slot){
+ if(recorder&&recordSlot===slot){recorder.stop();return}if(recorder)return alert('Es läuft bereits eine Aufnahme.');try{recordStream=await navigator.mediaDevices.getUserMedia({audio:true});const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'';recorder=new MediaRecorder(recordStream,mime?{mimeType:mime}:undefined);recordChunks=[];recordSlot=slot;recorder.ondataavailable=e=>{if(e.data.size)recordChunks.push(e.data)};recorder.onstop=async()=>{const blob=new Blob(recordChunks,{type:recorder.mimeType||'audio/webm'});const name=prompt('Name der Aufnahme:','VOICE '+(slot+1))||('VOICE '+(slot+1));const rec=await ARFX.samples.put(blob,{name});sampleSlots[slot]={id:rec.id,name:rec.name,mime:rec.mime};ARFX.samples.saveSlots(sampleSlots);recordStream.getTracks().forEach(t=>t.stop());recordStream=null;recorder=null;recordSlot=-1;renderSamples();status('Voice Sample gespeichert')};recorder.start();status('Aufnahme läuft · Slot '+(slot+1));alert('Aufnahme läuft. Noch einmal REC drücken zum Stoppen.')}catch(e){alert('Mikrofon nicht verfügbar: '+e.message);recorder=null;recordSlot=-1;}
+}
+async function importSample(slot,file){if(!file)return;const rec=await ARFX.samples.put(file,{name:file.name});sampleSlots[slot]={id:rec.id,name:rec.name,mime:rec.mime};ARFX.samples.saveSlots(sampleSlots);renderSamples();status('Sample importiert')}
+async function playSample(slot){const meta=sampleSlots[slot];if(!meta)return;const rec=await ARFX.samples.get(meta.id);if(!rec)return;const url=URL.createObjectURL(rec.blob),a=new Audio(url);a.onended=()=>URL.revokeObjectURL(url);a.play()}
+async function deleteSampleSlot(slot){const meta=sampleSlots[slot];if(!meta)return;if(!confirm('Sample aus Slot '+(slot+1)+' löschen?'))return;await ARFX.samples.delete(meta.id);sampleSlots[slot]=null;ARFX.samples.saveSlots(sampleSlots);renderSamples()}
+
+$('search').oninput=e=>{filter=e.target.value;renderList()};$('newPreset').onclick=newPreset;$('duplicatePreset').onclick=duplicate;$('savePreset').onclick=save;$('sendPreset').onclick=send;$('deletePreset').onclick=del;$('exportPreset').onclick=exportJson;$('importPreset').onclick=()=>$('importFile').click();$('importFile').onchange=e=>importJson(e.target.files[0]);$('engine').onchange=engineChanged;$('name').oninput=e=>{current.name=e.target.value;$('title').textContent=current.name};$('bpm').oninput=e=>{$('bpmOut').value=e.target.value;if(rack)rack.setBpm(+e.target.value)};$('previewPlay').onclick=()=>previewToggle(false);$('previewRestart').onclick=()=>previewToggle(true);$('previewDry').onclick=()=>{previewBypass=!previewBypass;if(rack)rack.setBypass(previewBypass);$('previewDry').textContent=previewBypass?'FX AKTIVIEREN':'FX BYPASS'};
+window.addEventListener('beforeunload',()=>{if(meterRaf)cancelAnimationFrame(meterRaf);if(previewTimer)clearInterval(previewTimer);if(recordStream)recordStream.getTracks().forEach(t=>t.stop())});
+renderAll();$('bpmOut').value=$('bpm').value;status('bereit · FX Core '+ARFX.VERSION);
+})();
+</script>
+</body>
+</html>
