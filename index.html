@@ -18,6 +18,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <link rel="manifest" href="./manifest.webmanifest">
+<script>
+/* Service Worker: macht die Home-Screen-App offline lauffaehig. Registriert
+   sich still und scheitert lautlos, wenn die Datei ueber file:// geoeffnet
+   wird — dort gibt es keinen Service Worker. */
+if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
+}
+</script>
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -330,6 +340,7 @@ canvas{width:100%;height:120px;display:block;background:#070807;border:1px solid
     </div>
     <div class="sect" style="flex:0 0 auto">
       <div class="lab">LFO Wave</div>
+      <button class="btn" id="lfoSyncBtn" type="button" style="margin-right:8px">SYNC: AUS</button>
       <div class="seg" id="lfoWave"><button data-lw="0" class="on">SINE</button><button data-lw="1">SAW&#9660;</button><button data-lw="2">SAW&#9650;</button><button data-lw="3">SQR</button></div>
     </div>
     <div class="sect" style="flex:0 0 auto">
@@ -1168,7 +1179,7 @@ canvas{width:100%;height:120px;display:block;background:#070807;border:1px solid
 </script>
 <script>
 "use strict";
-var VER="6.5 ZDF+FX+INST";
+var VER="6.7 ZDF+FX+INST+SYNC";
 try{
  console.log('%c ACIDRATCHET-MF79 ','background:#aef022;color:#0a0c08;font-size:18px;font-weight:bold;padding:4px 12px;border-radius:5px');
  console.log('%c© 2026 Manfred Foissner — All rights reserved.\nUnauthorized copying, redistribution or reuse of this code is prohibited.','color:#aef022;font-size:12px;line-height:1.5');
@@ -1183,7 +1194,7 @@ window.addEventListener("unhandledrejection",function(e){__stat("PROMISE-FEHLER:
    ============================================================ */
 /* --- DSP CORE: one source of truth (used by both Worklet and ScriptProcessor fallback) --- */
 function makeVoice(sr,os){ os=os||1;
-  var raw={tune:0,cutoff:0.42,reso:0.74,env:0.62,decay:0.55,accent:0.62,dist:0.20,tone:0.55,level:0.82,slide:0.40,wave:0,dirty:0,body:0.45,squelch:0.0,lfoRate:0.30,lfoDepth:0.0,lfoWave:0,sub:0.0,detune:0.0,pwm:0.5,attack:0.0,release:0.0,lfoTarget:0};
+  var raw={tune:0,cutoff:0.42,reso:0.74,env:0.62,decay:0.55,accent:0.62,dist:0.20,tone:0.55,level:0.82,slide:0.40,wave:0,dirty:0,body:0.45,squelch:0.0,lfoRate:0.30,lfoDepth:0.0,lfoWave:0,sub:0.0,detune:0.0,pwm:0.5,attack:0.0,release:0.0,lfoTarget:0,bpm:132,lfoSync:0};
   var sm=Object.assign({},raw);
   var phase=0,phase2=0,subPhase=0,shPhase=0,shVal=0,freq=110,target=110,gliding=false,sa1=0,sa2=0,sa3=0,sa4=0,syncP=0;
   var envF=0,vca=0,vcaStage='off',prevSlide=false,peak=0.8,sus=0.6;
@@ -1227,7 +1238,11 @@ function makeVoice(sr,os){ os=os||1;
       var attCoef=1-Math.exp(-1/((0.0006+sm.attack*0.12)*sr)),decCoef=1-Math.exp(-1/(0.016*sr)),relCoef=1-Math.exp(-1/(((0.008+sm.decay*0.06)+sm.release*0.5)*sr));
       var preDrive=1.4+sm.dist*2.0+sm.squelch*0.9, distA=sm.dist;
       var lfoTarget=Math.round(r.lfoTarget||0);
-      var lfoHz=0.1*Math.pow(160,sm.lfoRate), lfoAmt=sm.lfoDepth, lfoOct=(lfoTarget===0?sm.lfoDepth*2.0:0), lfoInc=lfoHz/sr;
+      /* Tempo-Sync: der Rate-Regler waehlt dann eine Notenlaenge statt freier Hertz. */
+      var LFODIV=[4,2,1,0.5,1/3,0.25,1/6,0.125];
+      var lfoHz; if(r.lfoSync>0.5){ var di=Math.round(sm.lfoRate*(LFODIV.length-1)); if(di<0)di=0; if(di>LFODIV.length-1)di=LFODIV.length-1;
+        lfoHz=1/((60/Math.max(40,Math.min(260,sm.bpm)))*LFODIV[di]); } else { lfoHz=0.1*Math.pow(160,sm.lfoRate); }
+      var lfoAmt=sm.lfoDepth, lfoOct=(lfoTarget===0?sm.lfoDepth*2.0:0), lfoInc=lfoHz/sr;
       var toneLpCoef=1-Math.exp(-2*Math.PI*800/sr), toneT=sm.tone, level=sm.level;
       var deScrCoef=1-Math.exp(-2*Math.PI*6800/sr);   // gentle de-scratch corner ~6.8kHz
       var bodyAmt=sm.body*0.55;                                   // echter Koerper (kein Reso-Coupling)
@@ -1255,7 +1270,7 @@ function makeVoice(sr,os){ os=os||1;
         if(subAmt>0){ subPhase+=dt*0.5; if(subPhase>=1)subPhase-=1; var subv=Math.tanh(2.5*Math.sin(TWO_PI*subPhase)); osc=(osc+subv*subAmt)/(1+subAmt*0.55); }
         var fc=baseHz*Math.pow(2, envDepth*envF + accSweep*accFiltDepth + lfoOct*lfoVal);   // env sweep + accent WOW + LFO
         if(fc<20)fc=20; if(fc>fcMax)fc=fcMax;
-        var gt=Math.tan(Math.PI*fc/(sr*os)),G=gt/(1+gt),G2=G*G,G3=G2*G,G4=G3*G,dn=1/(1+gt); var k=resoK+sm.squelch*0.45+accSweep*0.14; if(lfoTarget===3){ k+=lfoVal*lfoAmt*0.85; } if(k<0)k=0;  // Tiefe hardware-plausibel: bis knapp ueber Self-Osc, nicht k=6.6   // Phase1: kein Ceiling, keine fc-Daempfung
+        var gt=Math.tan(Math.PI*fc/(sr*os)),G=gt/(1+gt),G2=G*G,G3=G2*G,G4=G3*G,dn=1/(1+gt); var k=resoK+sm.squelch*0.45+accSweep*0.14; var HFG=5500; if(fc>HFG) k*=Math.sqrt(HFG/fc);  /* Hardware zaehmt die Resonanz, wenn der Cutoff hochfaehrt — v5.5 hatte das als labHF, beim ZDF-Port ging es verloren. Ohne diese Zeile schreit der Filter bei hohem Cutoff und hoher Resonanz. Unter 5.5 kHz wirkungslos. */ if(lfoTarget===3){ k+=lfoVal*lfoAmt*0.85; } if(k<0)k=0;  // Tiefe hardware-plausibel: bis knapp ueber Self-Osc, nicht k=6.6   // Phase1: kein Ceiling, keine fc-Daempfung
         var pd=preDrive; if(lfoTarget===4){ pd=preDrive*(1+lfoVal*lfoAmt*0.8); if(pd<0)pd=0; }
         var accInputDrive=1+accSweep*0.10;                 // ONE SCREW ONLY: accented steps push the filter input slightly harder
         var inSig=osc*pd*accInputDrive*(1+k*0.03),fout=0; // no filter/feedback/slide/decay changes
@@ -1311,6 +1326,7 @@ function noteName(m){return NOTE_NAMES[m%12]+(Math.floor(m/12)-1);}
 const UI={tune:0,cutoff:42,reso:74,env:62,decay:55,accent:62,dist:20,tone:55,level:82,
           volume:80,bpm:132,swing:0,gate:62,slide:40,body:45,squelch:0,lfoRate:30,lfoDepth:0,sub:0,detune:0,pwm:50,attack:0,release:0};
 let wave=0, dirty=0, qmode=0, shiftOn=false, rateMul=0.25, lfoWave=0, lfoTarget=0;
+let lfoSync=0;
 let arpOn=false, arpMode='up', arpOct=1, arpRateMul=0.25, arpIdx=0;
 const STEPS=16;
 /* ---------- VOICE B (zweite Bassline, additiv) ---------- */
@@ -1523,14 +1539,14 @@ function panic(){ if(mode==='worklet'){ if(node)node.port.postMessage({type:'pan
 function pushAll(){
   P('tune',UI.tune); P('cutoff',w01('cutoff')); P('reso',w01('reso')); P('env',w01('env'));
   P('decay',w01('decay')); P('accent',w01('accent')); P('dist',w01('dist')); P('tone',w01('tone'));
-  P('level',w01('level')); P('slide',w01('slide')); P('body',w01('body')); P('squelch',w01('squelch')); P('lfoRate',w01('lfoRate')); P('lfoDepth',w01('lfoDepth')); P('sub',w01('sub')); P('detune',w01('detune')); P('pwm',w01('pwm')); P('attack',w01('attack')); P('release',w01('release')); P('wave',wave); P('dirty',dirty); P('lfoWave',lfoWave); P('lfoTarget',lfoTarget);
+  P('level',w01('level')); P('slide',w01('slide')); P('body',w01('body')); P('squelch',w01('squelch')); P('lfoRate',w01('lfoRate')); P('lfoDepth',w01('lfoDepth')); P('sub',w01('sub')); P('detune',w01('detune')); P('pwm',w01('pwm')); P('attack',w01('attack')); P('release',w01('release')); P('wave',wave); P('dirty',dirty); P('lfoWave',lfoWave); P('lfoTarget',lfoTarget); P('bpm',UI.bpm); P('lfoSync',lfoSync);
   LABKEYS.forEach(k=>{ P(k,UI[k]); P2(k,UI[k]); });
 }
 function curVP(){ return vbFocus?vpB:vpA; }
 function applyParam(k){
   if(k==='volume'){ if(master)master.gain.setTargetAtTime(w01('volume')*0.9,ctx.currentTime,.02); return; }
   if(LABKEYS.indexOf(k)>=0){ P(k,UI[k]); P2(k,UI[k]); return; }
-  if(k==='bpm'){ if(fxRack)fxRack.setBpm(UI.bpm); return; }
+  if(k==='bpm'){ if(fxRack)fxRack.setBpm(UI.bpm); P('bpm',UI.bpm); P2('bpm',UI.bpm); return; }
   if(k==='swing'||k==='gate') return; // sequencer-side
   if(PVKEYS.indexOf(k)>=0) curVP()[k]=UI[k];
   var snd=vbFocus?P2:P;
@@ -2078,6 +2094,13 @@ document.getElementById('dirty').addEventListener('click',e=>{const b=e.target.c
 document.getElementById('lfoWave').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
   document.querySelectorAll('#lfoWave button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
   lfoWave=+b.dataset.lw; curVP().lfoWave=lfoWave; (vbFocus?P2:P)('lfoWave',lfoWave);});
+(function(){var b=document.getElementById('lfoSyncBtn');if(!b)return;
+  try{lfoSync=localStorage.getItem('ar_lfosync')==='1'?1:0;}catch(e){}
+  function paint(){b.textContent='SYNC: '+(lfoSync?'AN':'AUS');b.classList.toggle('on',!!lfoSync);}
+  b.addEventListener('click',function(){lfoSync=lfoSync?0:1;try{localStorage.setItem('ar_lfosync',String(lfoSync))}catch(e){}
+    P('lfoSync',lfoSync);P2('lfoSync',lfoSync);P('bpm',UI.bpm);P2('bpm',UI.bpm);paint();
+    setStatus(lfoSync?'LFO folgt dem Tempo — Rate waehlt die Notenlaenge':'LFO laeuft frei in Hertz');});
+  paint();})();
 document.getElementById('lfoTarget').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
   document.querySelectorAll('#lfoTarget button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
   lfoTarget=+b.dataset.lt; curVP().lfoTarget=lfoTarget; (vbFocus?P2:P)('lfoTarget',lfoTarget);});
