@@ -4,7 +4,7 @@
 <script>/* PWA: im Home-Screen-Modus Suite-Links im selben Fenster oeffnen (sonst getrennter Speicher) */(function(){var sa=window.navigator.standalone===true||(window.matchMedia&&matchMedia("(display-mode: standalone)").matches);if(!sa)return;var o=window.open;window.open=function(u){if(typeof u==="string"&&/^\.\//.test(u)){location.href=u;return window;}return o.apply(window,arguments);};})();</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACIDRATCHET TD-3-MO Pattern Translator V3.5 Studio I/O</title>
+<title>ACIDRATCHET TD-3-MO Pattern Translator V3.8 Studio I/O</title>
 <style>
 :root{--bg:#080a09;--panel:#121713;--line:#354038;--lime:#b7ff28;--text:#f4f6ef;--muted:#aab2aa;--red:#ff665e;--amber:#ffc857}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0,#19231b,#080a09 38%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
@@ -155,6 +155,31 @@ body.printing #printRoot{display:block;padding:10mm}
 .midi-dot.ok{background:#7ec13c}.midi-dot.run{background:#e0b062}
 
 </style>
+<script>
+/* ===== Transport-Sperre zwischen den Werkzeugen =====
+   ACIDRATCHET und das Pattern Studio laufen in getrennten Tabs mit je
+   eigenem AudioContext. Browser lassen Audio im Hintergrund-Tab weiterlaufen,
+   deshalb klang beim Umschalten der alte Tab weiter. Wer startet, meldet das
+   ueber einen gemeinsamen Kanal; der jeweils andere haelt an.
+   BroadcastChannel wo vorhanden, sonst das storage-Event als Rueckfall. */
+var ARBUS=(function(){
+  var ch=null; try{ ch=new BroadcastChannel('acidratchet_transport'); }catch(e){}
+  return {
+    play:function(who){
+      var m={t:'play',who:who,at:Date.now()};
+      if(ch){try{ch.postMessage(m)}catch(e){}}
+      try{localStorage.setItem('ar_transport',JSON.stringify(m))}catch(e){}
+    },
+    onOther:function(who,fn){
+      if(ch) ch.onmessage=function(e){var m=e.data; if(m&&m.t==='play'&&m.who!==who){try{fn()}catch(_){}}};
+      window.addEventListener('storage',function(e){
+        if(e.key!=='ar_transport'||!e.newValue)return;
+        try{var m=JSON.parse(e.newValue); if(m&&m.t==='play'&&m.who!==who) fn();}catch(_){}
+      });
+    }
+  };
+})();
+</script>
 </head>
 <body>
 <div class="app">
@@ -388,6 +413,23 @@ body.printing #printRoot{display:block;padding:10mm}
   <button id="installAllClassics">80 Classics → Bank 49–128</button>
   <button id="openAcidratchet">ACIDRATCHET öffnen</button><button class="primary" id="exportMidi">GarageBand MIDI exportieren</button>
   <span class="smallnote">Direkte Übergabe funktioniert unter derselben Web-Adresse. Der MIDI-Export erzeugt eine GarageBand-kompatible Datei mit Bassline und separater Drum-Spur.</span>
+</div>
+<div class="bank-tools" id="chainTools">
+  <div style="width:100%;font-weight:700;letter-spacing:1px;margin-bottom:6px">CHAIN BUILDER</div>
+  <button class="primary" id="chainAdd">Aktuelles Pattern anhängen</button>
+  <button id="chainUp">◀ früher</button><button id="chainDown">später ▶</button>
+  <button class="danger" id="chainDel">Schritt entfernen</button>
+  <button class="danger" id="chainClear">Chain leeren</button>
+  <div style="width:100%;margin:8px 0">
+    <select id="chainList" size="6" style="width:100%"></select>
+  </div>
+  <input id="chainName" type="text" placeholder="Name der Chain" style="flex:1;min-width:180px">
+  <button class="primary" id="chainSave">In Songbook speichern</button>
+  <select id="chainLoad" style="min-width:200px"><option value="">— gespeicherte Chain laden —</option></select>
+  <button class="danger" id="chainDelSaved">Gespeicherte löschen</button>
+  <button class="primary" id="chainSend">Chain → ACIDRATCHET</button>
+  <input id="chainStart" type="number" min="1" max="121" value="1" title="Startbank">
+  <span class="smallnote">Die Chain speichert eine eigene Kopie der Patterns. Überschreibst du später einen Slot, spielt die gespeicherte Chain trotzdem das, was du gebaut hast. Beim Senden werden ab der Startbank so viele Bänke beschrieben, wie die Chain Schritte hat (max. 8).</span>
 </div>
 </section>
 </main>
@@ -626,7 +668,7 @@ class AcidPreviewDSP{
     this.punchEnv=0;
     this.f1=this.f2=this.f3=this.f4=0;
     this.dcX=this.dcY=0;
-    this.kickEnv=this.snareEnv=this.hatEnv=this.openEnv=0;
+    this.kickEnv=this.snareEnv=this.hatEnv=this.openEnv=0;this.kClickEnv=this.sTone1Env=this.sTone2Env=0;this.kickAge=this.snareAge=1e9;this.kClickLP=this.sNoiseLP=this.hNoiseLP=0;this.sT1=this.sT2=0;this.metBPs=this.metHPs=0;this.metPh=[0,0,0,0,0,0];this.metHz=[2,3,4.16,5.43,6.79,8.21].map(r=>317*r);
     this.kickPhase=0;this.noiseSeed=123456789;this.noiseLP=0;
     this.running=false;
     this.lastPatternId='';
@@ -646,7 +688,7 @@ class AcidPreviewDSP{
     this.punchEnv=0;
     this.f1=this.f2=this.f3=this.f4=0;
     this.dcX=this.dcY=0;
-    this.kickEnv=this.snareEnv=this.hatEnv=this.openEnv=0;
+    this.kickEnv=this.snareEnv=this.hatEnv=this.openEnv=0;this.kClickEnv=this.sTone1Env=this.sTone2Env=0;this.kickAge=this.snareAge=1e9;this.kClickLP=this.sNoiseLP=this.hNoiseLP=0;this.sT1=this.sT2=0;this.metBPs=this.metHPs=0;this.metPh=[0,0,0,0,0,0];this.metHz=[2,3,4.16,5.43,6.79,8.21].map(r=>317*r);
   }
   params(){
     const c=previewValue('previewCutoff')/100;
@@ -699,8 +741,8 @@ class AcidPreviewDSP{
     this.currentStep=s;
     const drums=p.drums||{k:0,s:0,h:0,o:0};
     const drumIndex=this.stepIndex;
-    if(maskBit(drums.k,drumIndex))this.kickEnv=1;
-    if(maskBit(drums.s,drumIndex))this.snareEnv=1;
+    if(maskBit(drums.k,drumIndex)){this.kickEnv=1;this.kClickEnv=1;this.kickAge=0;}
+    if(maskBit(drums.s,drumIndex)){this.snareEnv=1;this.sTone1Env=1;this.sTone2Env=1;this.snareAge=0;}
     if(maskBit(drums.h,drumIndex))this.hatEnv=1;
     if(maskBit(drums.o,drumIndex))this.openEnv=1;
     this.slideTarget=null;
@@ -794,21 +836,56 @@ class AcidPreviewDSP{
     const amp=(.42+accentLift*.28)*this.gateEnv*par.level;
     let y=body*amp;
 
-    // Compact synchronized drum voice: kick, snare and metallic hats.
+    /* --- V3.6: Drum-Stimmen samplegenau aus index.html portiert (CORE-Kit) ---
+       Vorher war die Snare weisses Rauschen plus ein Sinus auf der KICK-Phase.
+       Ohne gleichzeitige Kick lag der bei ~92 Hz und war unhoerbar, die Snare
+       also reines Rauschen — spektral dasselbe wie die Open-Hat. Dazu klangen
+       alle Huellkurven viel zu lang (Open-Hat 1000 ms), was die Stimmen zu
+       einem Rauschteppich verschmierte. Jetzt hat jede Stimme ihre eigene
+       Erzeugung und die Abklingzeiten der index.html. */
     this.noiseSeed=(this.noiseSeed*1664525+1013904223)>>>0;
     const noise=(this.noiseSeed/2147483648)-1;
-    this.noiseLP+=.12*(noise-this.noiseLP);
-    const brightNoise=noise-this.noiseLP;
-    const kickHz=46+128*this.kickEnv*this.kickEnv;
-    this.kickPhase+=kickHz/this.sr;if(this.kickPhase>=1)this.kickPhase-=1;
-    const kick=Math.sin(this.kickPhase*Math.PI*2)*this.kickEnv*.62;
-    const snare=(noise*.72+Math.sin(this.kickPhase*Math.PI*4)*.18)*this.snareEnv*.32;
-    const hat=brightNoise*this.hatEnv*.16+brightNoise*this.openEnv*.20;
-    this.kickEnv*=Math.exp(-1/(.22*this.sr));
-    this.snareEnv*=Math.exp(-1/(.13*this.sr));
-    this.hatEnv*=Math.exp(-1/(.035*this.sr));
-    this.openEnv*=Math.exp(-1/(.23*this.sr));
-    y+=(kick+snare+hat)*par.drumLevel;
+    const DEC=(d)=>Math.exp(-6.9078/(d*this.sr));   // -60 dB nach d Sekunden, wie eg() in index.html
+    const HPC=(f)=>1-Math.exp(-2*Math.PI*f/this.sr);
+
+    /* KICK: Sinus 150 -> 45 Hz in 35 ms, dazu hochpassgefilterter Click */
+    const kSweep=Math.max(0,1-this.kickAge/(0.035*this.sr));
+    this.kickPhase+=(45+105*kSweep*kSweep)/this.sr; if(this.kickPhase>=1)this.kickPhase-=1;
+    const kick=Math.sin(this.kickPhase*Math.PI*2)*this.kickEnv*0.62;
+    this.kClickLP+=(noise-this.kClickLP)*HPC(1200);
+    const click=(noise-this.kClickLP)*this.kClickEnv*0.35;
+    this.kickAge++;
+
+    /* SNARE: Rauschkoerper ueber 1700-Hz-Hochpass + zwei gestimmte Dreiecke */
+    this.sNoiseLP+=(noise-this.sNoiseLP)*HPC(1700);
+    const sBody=(noise-this.sNoiseLP)*this.snareEnv*0.70;
+    const sS1=Math.max(0,1-this.snareAge/(0.10*this.sr));
+    const sS2=Math.max(0,1-this.snareAge/(0.07*this.sr));
+    this.sT1+=(110+70*sS1)/this.sr; if(this.sT1>=1)this.sT1-=1;
+    this.sT2+=(180+98*sS2)/this.sr; if(this.sT2>=1)this.sT2-=1;
+    const tri=(ph)=>4*Math.abs(ph-0.5)-1;
+    const snare=(sBody + tri(this.sT1)*this.sTone1Env*0.50 + tri(this.sT2)*this.sTone2Env*0.30)*0.32;
+    this.snareAge++;
+
+    /* HAT: Rauschen ueber 7200-Hz-Hochpass + sechs Rechtecke auf den
+       metallischen Verhaeltnissen 2/3/4.16/5.43/6.79/8.21 x 317 Hz,
+       durch Bandpass 9 kHz und Hochpass 6.5 kHz. Closed und Open teilen
+       sich die Bank und unterscheiden sich nur in der Abklingzeit. */
+    this.hNoiseLP+=(noise-this.hNoiseLP)*HPC(7200);
+    const hNoise=noise-this.hNoiseLP;
+    let met=0;
+    for(let r=0;r<6;r++){ this.metPh[r]+=this.metHz[r]/this.sr; if(this.metPh[r]>=1)this.metPh[r]-=1;
+      met+=(this.metPh[r]<0.5?1:-1); }
+    met/=6;
+    this.metBPs+=(met-this.metBPs)*HPC(9000);
+    this.metHPs+=(this.metBPs-this.metHPs)*HPC(6500);
+    const metal=this.metBPs-this.metHPs;
+    const hat=(hNoise*0.300+metal*0.130)*this.hatEnv + (hNoise*0.338+metal*0.150)*this.openEnv;
+
+    this.kickEnv*=DEC(0.26);  this.kClickEnv*=DEC(0.03);
+    this.snareEnv*=DEC(0.18); this.sTone1Env*=DEC(0.119); this.sTone2Env*=DEC(0.09);
+    this.hatEnv*=DEC(0.045);  this.openEnv*=DEC(0.315);
+    y+=(kick+click+snare+hat)*par.drumLevel;
 
     // DC blocker removes the low "dock" / thump caused by asymmetric saturation.
     const hp=y-this.dcX+.995*this.dcY;
@@ -866,6 +943,7 @@ function previewStart(restart=false){
     if(restart)a.dsp.reset();
     a.dsp.running=true;
     previewPlaying=true;
+    ARBUS.play('studio');
     $('previewPlay').textContent='■ STOP';
     $('previewPlay').classList.add('running');
     $('engineState').textContent='läuft · ACIDRATCHET Preview Core V3';
@@ -883,6 +961,7 @@ function previewStop(){
   $('engineState').textContent='bereit · geglättete monophone Voice · NOTE / REST / TIE / ACCENT / SLIDE';
 }
 function previewToggle(){previewPlaying?previewStop():previewStart(true)}
+ARBUS.onOther('studio',function(){ if(previewPlaying){ previewStop(); var e=document.getElementById('status'); if(e)e.textContent='ACIDRATCHET hat uebernommen — Vorhoeren angehalten'; } });
 function previewVisualLoop(){
   if(previewAudio&&previewPlaying){
     const i=previewAudio.dsp.visualStep;
@@ -1062,6 +1141,73 @@ $('addGenre').onclick=()=>{const n=mergeGenre(st.patterns);save();render();$('st
 $('importFileBtn').onclick=()=>$('importFile').click();
 $('importFile').onchange=e=>importFile(e.target.files[0]);
 $('installBank').onclick=installCurrentBank;
+
+/* ===================== CHAIN BUILDER (V3.7) =====================
+   Rollenaufteilung: hier gebaut (Banks und Slots liegen hier), im SONGBOOK
+   gesammelt, in ACIDRATCHET abgespielt. Eine Chain speichert immer einen
+   Schnappschuss der referenzierten Patterns mit — sonst spielt sie Unsinn,
+   sobald ein Slot spaeter ueberschrieben wird. */
+const CHAIN_KEY='ar_chains';
+let chainDraft=[];                       // Array von Pattern-Objekten (Kopien)
+function chainLoadLib(){ try{const x=JSON.parse(localStorage.getItem(CHAIN_KEY)||'null');
+  return (x&&Array.isArray(x.chains))?x:{v:1,chains:[]};}catch{return {v:1,chains:[]}} }
+function chainSaveLib(l){ try{localStorage.setItem(CHAIN_KEY,JSON.stringify(l))}catch(e){alert('Speichern fehlgeschlagen: '+e.message)} }
+function chainRender(){
+  const sel=$('chainList'); const keep=sel.selectedIndex;
+  sel.innerHTML=chainDraft.map((p,i)=>`<option value="${i}">${i+1}. ${esc(p.name)} · ${p.bpm||132} BPM</option>`).join('');
+  sel.selectedIndex=Math.min(Math.max(keep,0),chainDraft.length-1);
+  const lib=chainLoadLib();
+  $('chainLoad').innerHTML='<option value="">— gespeicherte Chain laden —</option>'+
+    lib.chains.map(c=>`<option value="${c.id}">${esc(c.name)} (${c.items.length})</option>`).join('');
+}
+function chainSel(){ const i=$('chainList').selectedIndex; return i>=0?i:-1 }
+$('chainAdd').onclick=()=>{ if(chainDraft.length>=8){alert('Eine Chain fasst maximal 8 Schritte.');return;}
+  chainDraft.push(JSON.parse(JSON.stringify(cur()))); chainRender();
+  $('status').textContent=`Chain: ${chainDraft.length} Schritt(e)`; };
+$('chainDel').onclick=()=>{ const i=chainSel(); if(i<0)return; chainDraft.splice(i,1); chainRender() };
+$('chainClear').onclick=()=>{ if(chainDraft.length&&!confirm('Chain-Entwurf leeren?'))return; chainDraft=[]; chainRender() };
+function chainMove(d){ const i=chainSel(); if(i<0)return; const j=i+d; if(j<0||j>=chainDraft.length)return;
+  const t=chainDraft[i]; chainDraft[i]=chainDraft[j]; chainDraft[j]=t; chainRender(); $('chainList').selectedIndex=j; }
+$('chainUp').onclick=()=>chainMove(-1); $('chainDown').onclick=()=>chainMove(1);
+$('chainSave').onclick=()=>{
+  if(!chainDraft.length){alert('Die Chain ist leer.');return}
+  const name=($('chainName').value||'').trim()||`Chain ${new Date().toLocaleDateString('de-AT')}`;
+  const lib=chainLoadLib();
+  lib.chains.unshift({id:'chain_'+uid(),name,created:new Date().toISOString(),
+    items:JSON.parse(JSON.stringify(chainDraft)),
+    /* Fertige ACIDRATCHET-Bankeintraege mitspeichern: so kann das SONGBOOK die
+       Chain abschicken, ohne die Pattern-Konvertierung noch einmal zu kennen. */
+    banks:chainDraft.map(toAcidBank),
+    labels:chainDraft.map(p=>`${p.name} · ${p.bpm||132} BPM`),
+    bpm:(chainDraft[0]&&chainDraft[0].bpm)||132});
+  chainSaveLib(lib); chainRender();
+  $('status').textContent=`Chain "${name}" im Songbook gespeichert (${chainDraft.length} Schritte)`;
+};
+$('chainLoad').onchange=e=>{ const id=e.target.value; if(!id)return;
+  const c=chainLoadLib().chains.find(x=>x.id===id); if(!c)return;
+  chainDraft=JSON.parse(JSON.stringify(c.items)); $('chainName').value=c.name; chainRender();
+  $('status').textContent=`Chain "${c.name}" geladen`; };
+$('chainDelSaved').onclick=()=>{ const id=$('chainLoad').value; if(!id){alert('Erst eine gespeicherte Chain auswählen.');return}
+  const lib=chainLoadLib(); const c=lib.chains.find(x=>x.id===id); if(!c)return;
+  if(!confirm(`Chain "${c.name}" löschen?`))return;
+  lib.chains=lib.chains.filter(x=>x.id!==id); chainSaveLib(lib); chainRender();
+  $('status').textContent='Chain gelöscht'; };
+$('chainSend').onclick=()=>{
+  if(!chainDraft.length){alert('Die Chain ist leer.');return}
+  const start=Math.max(1,Math.min(121,+$('chainStart').value||1));
+  const x=loadAcidBanks(), idx=[];
+  chainDraft.forEach((p,i)=>{ const b=start-1+i; x.banks[b]=toAcidBank(p);
+    x.names[b]=`${p.name} · ${p.bpm||132} BPM`; idx.push(b); });
+  x.cur=start-1;
+  try{
+    localStorage.setItem('ar_banks',JSON.stringify(x));
+    localStorage.setItem('ar_chain',JSON.stringify({chain:idx,on:true}));
+    localStorage.setItem('ar_handoff',JSON.stringify({bank:start,chain:idx,sentAt:Date.now()}));
+  }catch(e){ alert('Übergabe fehlgeschlagen: '+e.message); return }
+  $('status').textContent=`Chain in Bank ${start}–${start+chainDraft.length-1} geschrieben und aktiviert`;
+  window.open('./index.html?arBank='+start,'_blank');
+};
+chainRender();
 $('installAllClassics').onclick=installAllClassics;
 $('openAcidratchet').onclick=()=>window.open('./index.html','_blank');
 $('exportMidi').onclick=exportGarageBandMidi;

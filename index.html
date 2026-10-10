@@ -19,6 +19,32 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <link rel="manifest" href="./manifest.webmanifest">
 <script>
+/* ===== Transport-Sperre zwischen den Werkzeugen =====
+   ACIDRATCHET und das Pattern Studio laufen in getrennten Tabs mit je
+   eigenem AudioContext. Browser lassen Audio im Hintergrund-Tab weiterlaufen,
+   deshalb klang beim Umschalten der alte Tab weiter. Wer startet, meldet das
+   ueber einen gemeinsamen Kanal; der jeweils andere haelt an.
+   BroadcastChannel wo vorhanden, sonst das storage-Event als Rueckfall. */
+var ARBUS=(function(){
+  var ch=null; try{ ch=new BroadcastChannel('acidratchet_transport'); }catch(e){}
+  return {
+    play:function(who){
+      var m={t:'play',who:who,at:Date.now()};
+      if(ch){try{ch.postMessage(m)}catch(e){}}
+      try{localStorage.setItem('ar_transport',JSON.stringify(m))}catch(e){}
+    },
+    onOther:function(who,fn){
+      if(ch) ch.onmessage=function(e){var m=e.data; if(m&&m.t==='play'&&m.who!==who){try{fn()}catch(_){}}};
+      window.addEventListener('storage',function(e){
+        if(e.key!=='ar_transport'||!e.newValue)return;
+        try{var m=JSON.parse(e.newValue); if(m&&m.t==='play'&&m.who!==who) fn();}catch(_){}
+      });
+    }
+  };
+})();
+</script>
+
+<script>
 /* Service Worker: macht die Home-Screen-App offline lauffaehig. Registriert
    sich still und scheitert lautlos, wenn die Datei ueber file:// geoeffnet
    wird — dort gibt es keinen Service Worker. */
@@ -1179,7 +1205,7 @@ canvas{width:100%;height:120px;display:block;background:#070807;border:1px solid
 </script>
 <script>
 "use strict";
-var VER="6.7 ZDF+FX+INST+SYNC";
+var VER="6.8 ZDF+FX+INST+SYNC";
 try{
  console.log('%c ACIDRATCHET-MF79 ','background:#aef022;color:#0a0c08;font-size:18px;font-weight:bold;padding:4px 12px;border-radius:5px');
  console.log('%c© 2026 Manfred Foissner — All rights reserved.\nUnauthorized copying, redistribution or reuse of this code is prohibited.','color:#aef022;font-size:12px;line-height:1.5');
@@ -1703,6 +1729,7 @@ async function start(){
   if(ctx.state==='suspended'){ try{ await ctx.resume(); }catch(e){} }
   if(running)return;
   running=true; curStep=0; arpIdx=0; nextTime=ctx.currentTime+0.08;
+  ARBUS.play('acidratchet');
   panic(); panic2(); setVbGain();
   clearInterval(timer); scheduler(); timer=setInterval(scheduler,SCHED_TICK_MS);
   const b=document.getElementById('play'); b.classList.add('on'); b.textContent='■ STOP'; syncPlayTop();
@@ -1714,6 +1741,7 @@ function stop(){
   document.querySelectorAll('.st').forEach(el=>el.classList.remove('cur'));
 }
 document.getElementById('play').addEventListener('click',()=>running?stop():start());
+ARBUS.onOther('acidratchet',function(){ if(running){ stop(); setStatus('Pattern Studio hat uebernommen — hier angehalten'); } });
 /* Transport-Mirror oben in der Core-Row (nur mobil sichtbar, spiegelt #play 1:1) */
 function syncPlayTop(){var a=document.getElementById('play'),t=document.getElementById('playTop');if(!a||!t)return;t.textContent=a.textContent;t.classList.toggle('on',a.classList.contains('on'));}
 (function(){var t=document.getElementById('playTop');if(t){t.addEventListener('click',function(){running?stop():start();});syncPlayTop();}})();

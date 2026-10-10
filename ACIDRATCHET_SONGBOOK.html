@@ -71,6 +71,7 @@ Ein Klick schreibt die 5 Patterns in aufeinanderfolgende ACIDRATCHET-Bänke <b>u
   <button class="btn" id="openAr">ACIDRATCHET öffnen</button>
 </div>
 
+<div id="myChains"></div>
 <div id="list"></div>
 
 <div class="note">
@@ -166,6 +167,50 @@ document.addEventListener('click',e=>{
   else if(b.dataset.chain){ writeSet(find(b.dataset.chain),true); }
   else if(b.dataset.open){ writeSet(find(b.dataset.open),false); setTimeout(()=>openAr(target()),120); }
 });
+
+/* ===================== EIGENE CHAINS (aus dem Pattern Studio) =====================
+   Das Studio baut die Chains und legt sie unter ar_chains ab — samt fertiger
+   Bankeintraege und eines Schnappschusses der Patterns. Hier werden sie nur
+   gesammelt, gefunden und abgeschickt. */
+const MYKEY='ar_chains';
+function myLoad(){ try{const x=JSON.parse(localStorage.getItem(MYKEY)||'null');
+  return (x&&Array.isArray(x.chains))?x:{v:1,chains:[]};}catch(e){return {v:1,chains:[]}} }
+function mySave(l){ try{localStorage.setItem(MYKEY,JSON.stringify(l))}catch(e){alert('Speichern fehlgeschlagen: '+e.message)} }
+function myEsc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function mySend(c){
+  if(!Array.isArray(c.banks)||!c.banks.length){ myStatus(c.id,'Diese Chain wurde mit einer aelteren Studio-Version gespeichert und enthaelt keine Bankdaten. Im Studio neu speichern.'); return; }
+  const start=target(), x=loadBanks(), idx=[];
+  c.banks.forEach((b,i)=>{ const n=start-1+i; if(n>=NB)return; x.banks[n]=b;
+    x.names[n]=(c.labels&&c.labels[i])||(c.name+' '+(i+1)); idx.push(n); });
+  x.cur=start-1;
+  try{ localStorage.setItem('ar_banks',JSON.stringify(x)); }
+  catch(e){ return myStatus(c.id,'FEHLER: Speicher voll — Baenke nicht geschrieben.'); }
+  try{ localStorage.setItem('ar_chain',JSON.stringify({chain:idx,on:true})); }catch(e){}
+  try{ localStorage.setItem('ar_handoff',JSON.stringify({bank:start,chain:idx,sentAt:Date.now()})); }catch(e){}
+  myStatus(c.id,'Baenke '+start+'–'+(start+idx.length-1)+' geschrieben · Kette: '+idx.map(b=>b+1).join(' \u203a '));
+}
+function myStatus(id,t){const e=$('myst_'+id); if(e)e.textContent=t;}
+function myRender(){
+  const host=$('myChains'); if(!host)return;
+  const lib=myLoad();
+  if(!lib.chains.length){ host.innerHTML=''; return; }
+  host.innerHTML='<h2 style="margin:18px 0 8px">Eigene Chains</h2>'+lib.chains.map(c=>
+    '<div class="card" style="margin-bottom:10px"><b>'+myEsc(c.name)+'</b> '+
+    '<span style="opacity:.7">· '+(c.items?c.items.length:(c.banks||[]).length)+' Schritte'+
+    (c.bpm?' · '+c.bpm+' BPM':'')+'</span><br>'+
+    '<span style="opacity:.6;font-size:.85em">'+((c.labels||[]).join(' \u203a ')||'')+'</span><br>'+
+    '<button class="btn" data-send="'+c.id+'">\u2192 ACIDRATCHET</button> '+
+    '<button class="btn" data-del="'+c.id+'">L\u00f6schen</button> '+
+    '<span id="myst_'+c.id+'" style="margin-left:8px;opacity:.8"></span></div>').join('');
+  host.querySelectorAll('[data-send]').forEach(b=>b.onclick=()=>{
+    const c=myLoad().chains.find(x=>x.id===b.dataset.send); if(c){mySend(c); openAr(target());}});
+  host.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
+    const l=myLoad(), c=l.chains.find(x=>x.id===b.dataset.del); if(!c)return;
+    if(!confirm('Chain "'+c.name+'" l\u00f6schen?'))return;
+    l.chains=l.chains.filter(x=>x.id!==c.id); mySave(l); myRender();});
+}
+myRender();
+window.addEventListener('storage',e=>{ if(e.key===MYKEY) myRender(); });
 </script>
 </body>
 </html>
