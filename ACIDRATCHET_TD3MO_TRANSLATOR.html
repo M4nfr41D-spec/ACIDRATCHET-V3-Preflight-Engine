@@ -4,7 +4,7 @@
 <script>/* PWA: im Home-Screen-Modus Suite-Links im selben Fenster oeffnen (sonst getrennter Speicher) */(function(){var sa=window.navigator.standalone===true||(window.matchMedia&&matchMedia("(display-mode: standalone)").matches);if(!sa)return;var o=window.open;window.open=function(u){if(typeof u==="string"&&/^\.\//.test(u)){location.href=u;return window;}return o.apply(window,arguments);};})();</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACIDRATCHET TD-3-MO Pattern Translator V3.8 Studio I/O</title>
+<title>ACIDRATCHET TD-3-MO Pattern Translator V4.0 Studio I/O</title>
 <style>
 :root{--bg:#080a09;--panel:#121713;--line:#354038;--lime:#b7ff28;--text:#f4f6ef;--muted:#aab2aa;--red:#ff665e;--amber:#ffc857}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0,#19231b,#080a09 38%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
@@ -180,6 +180,7 @@ var ARBUS=(function(){
   };
 })();
 </script>
+<script src="./acidratchet-voice.js"></script>
 </head>
 <body>
 <div class="app">
@@ -669,7 +670,10 @@ class AcidPreviewDSP{
     this.f1=this.f2=this.f3=this.f4=0;
     this.dcX=this.dcY=0;
     this.kickEnv=this.snareEnv=this.hatEnv=this.openEnv=0;this.kClickEnv=this.sTone1Env=this.sTone2Env=0;this.kickAge=this.snareAge=1e9;this.kClickLP=this.sNoiseLP=this.hNoiseLP=0;this.sT1=this.sT2=0;this.metBPs=this.metHPs=0;this.metPh=[0,0,0,0,0,0];this.metHz=[2,3,4.16,5.43,6.79,8.21].map(r=>317*r);
-    this.kickPhase=0;this.noiseSeed=123456789;this.noiseLP=0;
+    this.kickPhase=0;
+    /* V4.0: dieselbe Engine wie ACIDRATCHET, aus acidratchet-voice.js */
+    this.voice=(typeof makeVoice==='function')?makeVoice(this.sr,2):null;
+    this.vFrame=0; this.vBuf=new Float32Array(128); this.vPos=128; this.vLast='';this.noiseSeed=123456789;this.noiseLP=0;
     this.running=false;
     this.lastPatternId='';
     this.attackCoef=onePoleCoeff(1.8,sr);
@@ -749,11 +753,14 @@ class AcidPreviewDSP{
     this.slideStart=Math.round(this.stepSamples*.48);
 
     if(s.type==='rest'){
+      if(this.voice)this.voice.off(this.vFrame/this.sr);
       this.gateTarget=0;
     }else if(s.type==='tie'){
       this.gateTarget=1;
     }else{
-      const hz=midiHz(keyToMidi(s)+par.freqSemi);
+      const midi=keyToMidi(s)+par.freqSemi;
+      if(this.voice)this.voice.note(this.vFrame/this.sr,midi,s.accent?1:0,s.slide?1:0);
+      const hz=midiHz(midi);
       const legato=this.previousLegato(p,this.stepIndex);
       if(legato){
         this.targetFreq=hz;
@@ -773,6 +780,27 @@ class AcidPreviewDSP{
     }
     this.stepIndex=(this.stepIndex+1)%p.length;
     this.samplesToBoundary=this.stepSamples;
+  }
+  /* Die Regler des Studios auf die Parameter der gemeinsamen Engine abbilden.
+     cutoff wird aus baseCutoff zurueckgerechnet, weil die Engine 36*150^c nutzt. */
+  pushVoiceParams(par){
+    const v=this.voice; if(!v)return;
+    const P=(k,x)=>v.setP(k,Math.max(0,Math.min(1,x)));
+    const c=Math.log(Math.max(36,Math.min(5400,par.baseCutoff))/36)/Math.log(150);
+    P('cutoff',c);
+    P('reso',Math.min(1,(par.resonance-0.15)/3.45));
+    P('env',Math.min(1,(par.envAmount-0.25)/4.4));
+    P('decay',Math.min(1,Math.pow(Math.max(0,(par.decaySec-0.075))/1.15,1/1.55)));
+    P('accent',par.accent);
+    P('dist',par.drive);
+    P('level',par.level);
+    P('attack',Math.min(1,Math.sqrt(Math.max(0,par.attackMs-0.3)/31)*0.22/0.22));
+    P('tone',0.55); P('slide',0.40); P('body',0.45); P('squelch',0);
+    P('sub',0); P('detune',0); P('pwm',0.5); P('release',0);
+    P('lfoRate',0.30); P('lfoDepth',0);
+    v.setP('wave',par.wave==='square'?1:0); v.setP('dirty',0);
+    v.setP('lfoWave',0); v.setP('lfoTarget',0); v.setP('bpm',par.bpm); v.setP('lfoSync',0);
+    v.setP('tune',0);
   }
   sample(){
     const p=cur();
@@ -833,8 +861,25 @@ class AcidPreviewDSP{
 
     let body=this.f4*.88+this.f3*.18;
     body=Math.tanh(body*(1.15+par.drive*4.2));
-    const amp=(.42+accentLift*.28)*this.gateEnv*par.level;
-    let y=body*amp;
+    /* --- V4.0: die Bassline kommt jetzt aus derselben Engine wie ACIDRATCHET ---
+       Der alte Vorhoerer hatte eine eigene Einpol-Kaskade mit tanh statt der
+       ZDF-Diodenleiter. Die erreichte die Selbstoszillation nie, deshalb tat der
+       Resonanzregler hier praktisch nichts, und gemessen lagen nur 1,3% der
+       Energie ueber 2 kHz gegen 7,2% in ACIDRATCHET. Die alte Rechnung bleibt
+       als Rueckfall stehen, falls acidratchet-voice.js nicht geladen wird. */
+    let y;
+    if(this.voice){
+      if(this.vPos>=this.vBuf.length){
+        const sig=[par.baseCutoff,par.resonance,par.envAmount,par.decaySec,par.accent,par.drive,par.level,par.attackMs,par.wave].join(',');
+        if(sig!==this.vLast){ this.vLast=sig; this.pushVoiceParams(par); }
+        this.voice.process(this.vBuf,this.vBuf.length,this.vFrame);
+        this.vFrame+=this.vBuf.length; this.vPos=0;
+      }
+      y=this.vBuf[this.vPos++];
+    } else {
+      const amp=(.42+accentLift*.28)*this.gateEnv*par.level;
+      y=body*amp;
+    }
 
     /* --- V3.6: Drum-Stimmen samplegenau aus index.html portiert (CORE-Kit) ---
        Vorher war die Snare weisses Rauschen plus ein Sinus auf der KICK-Phase.
@@ -885,7 +930,8 @@ class AcidPreviewDSP{
     this.kickEnv*=DEC(0.26);  this.kClickEnv*=DEC(0.03);
     this.snareEnv*=DEC(0.18); this.sTone1Env*=DEC(0.119); this.sTone2Env*=DEC(0.09);
     this.hatEnv*=DEC(0.045);  this.openEnv*=DEC(0.315);
-    y+=(kick+click+snare+hat)*par.drumLevel;
+    /* Drum-Level 100 lag 9 dB unter der Bassline — man hoerte die Drums kaum. Faktor 2.8 bringt sie bei 100 auf Augenhoehe, darunter bleibt der Regler linear. */
+    y+=(kick+click+snare+hat)*par.drumLevel*2.8;
 
     // DC blocker removes the low "dock" / thump caused by asymmetric saturation.
     const hp=y-this.dcX+.995*this.dcY;
