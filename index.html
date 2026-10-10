@@ -1205,7 +1205,7 @@ canvas{width:100%;height:120px;display:block;background:#070807;border:1px solid
 </script>
 <script>
 "use strict";
-var VER="6.8 ZDF+FX+INST+SYNC";
+var VER="7.0 MF88-CAL";
 try{
  console.log('%c ACIDRATCHET-MF79 ','background:#aef022;color:#0a0c08;font-size:18px;font-weight:bold;padding:4px 12px;border-radius:5px');
  console.log('%c© 2026 Manfred Foissner — All rights reserved.\nUnauthorized copying, redistribution or reuse of this code is prohibited.','color:#aef022;font-size:12px;line-height:1.5');
@@ -1250,9 +1250,9 @@ function makeVoice(sr,os){ os=os||1;
       var r=raw,kk,sc=1-Math.exp(-n/(0.010*sr));
       for(kk in r){ sm[kk]+=(r[kk]-sm[kk])*sc; }
       var wave=Math.round(r.wave),dirty=r.dirty>0.5,lfoWave=Math.round(r.lfoWave);
-      var baseHz=200*Math.pow(22,sm.cutoff);              // 200..4400Hz = 303-Sweetspot ueber den GANZEN Knopfweg (20..20k verbriet halben Weg im Subbass)
+      var baseHz=36*Math.pow(150,sm.cutoff);   /* MF88.2-Kalibrierung: 36..5400 Hz = 7.2 Oktaven. Mit 200..4400 (4.5 Okt) fehlte unten der dunkle Bereich ganz, der Regler spannte nur Faktor 2 statt 9. */              // 200..4400Hz = 303-Sweetspot ueber den GANZEN Knopfweg (20..20k verbriet halben Weg im Subbass)
       var envDepth=sm.env*4.0;                            // OCTAVES of env filter sweep (the 303 grip)
-      var resoK=Math.pow(sm.reso,1.25)*4.3;               // Self-Osc-Onset ~94%: davor steigendes Zirpen, ab Anschlag Pfeifen (statt Dauer-Brutalton ab 85%)
+      var resoK=Math.pow(sm.reso,0.88)*4.5;   /* Exponent 0.88 aus MF88.2: verteilt die Resonanz ueber den ganzen Reglerweg. Mit 1.25 passierte bis Reso 85 fast nichts und dann sprang es. Skala 4.5 statt 3.95, weil diese ZDF-Leiter die Selbstoszillation sonst nicht mehr erreicht — das Zirpen setzt jetzt ab Reso 90 ein. Keine Daempfung. */               // Self-Osc-Onset ~94%: davor steigendes Zirpen, ab Anschlag Pfeifen (statt Dauer-Brutalton ab 85%)
       var coefF=Math.exp(-1/((0.05*Math.pow(40,sm.decay))*sr));   // normal filter-env decay 0.05..2.0s
       var coefFacc=Math.exp(-1/(0.11*sr));                       // ACCENT = fastest filter decay (~110ms)
       /* --- TB-303 ACCENT SWEEP CIRCUIT (modeled after Devilfish reverse-engineering) --- */
@@ -1274,7 +1274,7 @@ function makeVoice(sr,os){ os=os||1;
       var bodyAmt=sm.body*0.55;                                   // echter Koerper (kein Reso-Coupling)
       var bodyCoef=1-Math.exp(-2*Math.PI*260/sr);                 // Body = Oszillator tiefpass ~260Hz
       var detAmt=sm.detune*0.9, detRatio=Math.pow(2,(sm.detune*24)/1200), subAmt=sm.sub*0.95, pw=sm.pwm<0.06?0.06:(sm.pwm>0.94?0.94:sm.pwm);
-      var TWO_PI=6.283185307179586, fcMax=6800;           // Sweep-Endpunkt wie Hardware (~303-Bereich). Self-Osc bleibt HOERBAR statt 10k-Traeger der nur den Comp duckt
+      var TWO_PI=6.283185307179586, fcMax=12000  /* v5.5-Wert. Mit 6800 lief fc beim Notenanschlag ab Cutoff 59 in die Decke, darueber aenderte der Regler nichts mehr. Die Resonanz wird NICHT gedaempft — nur die Frequenz bekommt wieder Platz. */;           // Sweep-Endpunkt wie Hardware (~303-Bereich). Self-Osc bleibt HOERBAR statt 10k-Traeger der nur den Comp duckt
       for(var i=0;i<n;i++){
         while(events.length && events[0].s<=frame0+i){ var ev=events.shift(); if(ev.k==='n')trig(ev); else if(vcaStage!=='off')vcaStage='rel'; }
         if(gliding){ freq+=(target-freq)*coefG; if(Math.abs(target-freq)<0.02)freq=target; }
@@ -1296,7 +1296,7 @@ function makeVoice(sr,os){ os=os||1;
         if(subAmt>0){ subPhase+=dt*0.5; if(subPhase>=1)subPhase-=1; var subv=Math.tanh(2.5*Math.sin(TWO_PI*subPhase)); osc=(osc+subv*subAmt)/(1+subAmt*0.55); }
         var fc=baseHz*Math.pow(2, envDepth*envF + accSweep*accFiltDepth + lfoOct*lfoVal);   // env sweep + accent WOW + LFO
         if(fc<20)fc=20; if(fc>fcMax)fc=fcMax;
-        var gt=Math.tan(Math.PI*fc/(sr*os)),G=gt/(1+gt),G2=G*G,G3=G2*G,G4=G3*G,dn=1/(1+gt); var k=resoK+sm.squelch*0.45+accSweep*0.14; var HFG=5500; if(fc>HFG) k*=Math.sqrt(HFG/fc);  /* Hardware zaehmt die Resonanz, wenn der Cutoff hochfaehrt — v5.5 hatte das als labHF, beim ZDF-Port ging es verloren. Ohne diese Zeile schreit der Filter bei hohem Cutoff und hoher Resonanz. Unter 5.5 kHz wirkungslos. */ if(lfoTarget===3){ k+=lfoVal*lfoAmt*0.85; } if(k<0)k=0;  // Tiefe hardware-plausibel: bis knapp ueber Self-Osc, nicht k=6.6   // Phase1: kein Ceiling, keine fc-Daempfung
+        var gt=Math.tan(Math.PI*fc/(sr*os)),G=gt/(1+gt),G2=G*G,G3=G2*G,G4=G3*G,dn=1/(1+gt); var k=resoK+sm.squelch*0.45+accSweep*0.14; if(lfoTarget===3){ k+=lfoVal*lfoAmt*0.85; } if(k<0)k=0;  // Tiefe hardware-plausibel: bis knapp ueber Self-Osc, nicht k=6.6   // Phase1: kein Ceiling, keine fc-Daempfung
         var pd=preDrive; if(lfoTarget===4){ pd=preDrive*(1+lfoVal*lfoAmt*0.8); if(pd<0)pd=0; }
         var accInputDrive=1+accSweep*0.10;                 // ONE SCREW ONLY: accented steps push the filter input slightly harder
         var inSig=osc*pd*accInputDrive*(1+k*0.03),fout=0; // no filter/feedback/slide/decay changes
