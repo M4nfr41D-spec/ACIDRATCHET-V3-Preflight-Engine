@@ -4,7 +4,7 @@
 <script>/* PWA: im Home-Screen-Modus Suite-Links im selben Fenster oeffnen (sonst getrennter Speicher) */(function(){var sa=window.navigator.standalone===true||(window.matchMedia&&matchMedia("(display-mode: standalone)").matches);if(!sa)return;var o=window.open;window.open=function(u){if(typeof u==="string"&&/^\.\//.test(u)){location.href=u;return window;}return o.apply(window,arguments);};})();</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACIDRATCHET TD-3-MO Pattern Translator V4.0 Studio I/O</title>
+<title>ACIDRATCHET TD-3-MO Pattern Translator V4.1 Studio I/O</title>
 <style>
 :root{--bg:#080a09;--panel:#121713;--line:#354038;--lime:#b7ff28;--text:#f4f6ef;--muted:#aab2aa;--red:#ff665e;--amber:#ffc857}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0,#19231b,#080a09 38%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
@@ -337,19 +337,25 @@ var ARBUS=(function(){
     <button id="fxRoomBtn">Room-Preset</button>
   </div>
 
-  <h3 class="studio-h">MIDI OUT · TD‑3 / RD‑6 live spielen</h3>
+  <h3 class="studio-h">MIDI OUT · Bass + Drums live spielen</h3>
   <div class="studio-row">
-    <div class="field"><label>MIDI-Ausgang</label><select id="midiPort"><option value="">— nicht verbunden —</option></select></div>
+    <div class="field"><label>Bass-Ausgang</label><select id="midiPort"><option value="">— nicht verbunden —</option></select></div>
+    <div class="field"><label>Bass-Gerät</label><select id="midiBassDev"><option value="td3">Behringer TD-3 · Kanal 1</option><option value="free">frei</option></select></div>
     <div class="field"><label>Bass-Kanal</label><select id="midiChan"></select></div>
-    <div class="field"><label>Drum-Kanal</label><select id="midiDrumChan"></select></div>
     <div class="field"><label>Oktave Bass</label><select id="midiOct"><option value="-2">-2</option><option value="-1">-1</option><option value="0">0</option><option value="1" selected>+1</option><option value="2">+2</option></select></div>
+  </div>
+  <div class="studio-row" style="margin-top:8px">
+    <div class="field"><label>Drum-Ausgang</label><select id="midiDrumPort"><option value="same">— wie Bass —</option><option value="off">— aus —</option></select></div>
+    <div class="field"><label>Drum-Gerät</label><select id="midiDrumDev"><option value="rd6">Behringer RD-6 · Snare 40</option><option value="tr8">GM-Belegung · Snare 38</option><option value="free">frei</option></select></div>
+    <div class="field"><label>Drum-Kanal</label><select id="midiDrumChan"></select></div>
+    <div class="field"><label>Drum-Noten K/S/CH/OH</label><input id="midiDrumNotes" value="36,40,42,46"></div>
   </div>
   <div class="studio-row" style="margin-top:8px">
     <div class="field"><label>Accent-Velocity</label><input id="midiVelAcc" type="number" min="1" max="127" value="120"></div>
     <div class="field"><label>Normal-Velocity</label><input id="midiVelNorm" type="number" min="1" max="127" value="88"></div>
-    <div class="field"><label>Drum-Noten K/S/CH/OH</label><input id="midiDrumNotes" value="36,38,42,46"></div>
-    <div class="field"><label class="toggle-line"><input id="midiClock" type="checkbox" checked> MIDI-Clock + Start/Stop senden</label></div>
+    <div class="field"><label class="toggle-line"><input id="midiClock" type="checkbox"> Clock + Start/Stop senden</label></div>
   </div>
+  <p class="smallnote" style="margin:6px 0 0">Clock AUS = die Geräte spielen nur die Noten von hier. Clock AN = die Geräte laufen im Tempo mit und spielen <b>zusätzlich ihr eigenes internes Pattern</b> (für reine Notensteuerung AUS lassen). TD-3 und RD-6 sind zwei USB-Geräte: Bass-Ausgang = TD-3, Drum-Ausgang = RD-6 wählen.</p>
   <div class="studio-btns">
     <button id="midiConnect">MIDI verbinden</button>
     <button class="primary" id="midiPlay">▶ MIDI START</button>
@@ -1485,18 +1491,47 @@ function bindRecorder(){
   renderTakes();
 }
 
-/* ---------- MIDI OUT ---------- */
-const MO={access:null,out:null,playing:false,timer:null,next:0,step:0,active:[]};
+/* ---------- MIDI OUT (V4.1) ----------
+   Getrennte Ausgänge für Bass und Drums (TD-3 und RD-6 sind zwei USB-Ports).
+   Legato wie am 303: Slide = nächste Note vor dem Note-Off der alten senden,
+   Slide auf dieselbe Tonhöhe = Note halten statt neu anschlagen. Bindungen
+   (TIE) verlängern die Note um volle Steps. Takt läuft über einen Worker,
+   damit ein Tab im Hintergrund nicht stottert; liegt der Zeitplan zurück,
+   werden verpasste Steps übersprungen statt als Burst nachgeschickt. */
+const MO={access:null,out:null,outDrum:null,playing:false,timer:null,worker:null,next:0,step:0,active:[],held:null};
+const MIDI_KEY='acidratchet_midi_v1';
+const MIDI_BASS_DEV={td3:{ch:1}};
+const MIDI_DRUM_DEV={rd6:{ch:10,notes:'36,40,42,46'},tr8:{ch:10,notes:'36,38,42,46'}};
+const MIDI_GATE=.56, MIDI_LEGATO_MS=12, MIDI_AHEAD=180, MIDI_TICK=20;
 function midiChanVal(id){return Math.max(0,Math.min(15,(+$(id).value||1)-1))}
-function midiSend(bytes,at){try{MO.out.send(bytes,at)}catch(e){}}
+function midiSendTo(port,bytes,at){if(!port)return;try{port.send(bytes,at)}catch(e){}}
+function midiSend(bytes,at){midiSendTo(MO.out,bytes,at)}
+function midiDrumOut(){const v=$('midiDrumPort').value;if(v==='off')return null;if(v==='same'||!MO.access)return MO.out;return MO.access.outputs.get(v)||null}
+function midiPorts(){const a=[MO.out],d=midiDrumOut();if(d&&d!==MO.out)a.push(d);return a.filter(Boolean)}
+function midiSaveCfg(){
+  try{
+    const nm=id=>{const o=MO.access&&MO.access.outputs.get($(id).value);return o?o.name:$(id).value};
+    localStorage.setItem(MIDI_KEY,JSON.stringify({bassPort:nm('midiPort'),drumPort:nm('midiDrumPort'),
+      bassDev:$('midiBassDev').value,drumDev:$('midiDrumDev').value,chan:$('midiChan').value,drumChan:$('midiDrumChan').value,
+      oct:$('midiOct').value,velAcc:$('midiVelAcc').value,velNorm:$('midiVelNorm').value,notes:$('midiDrumNotes').value,clock:$('midiClock').checked}));
+  }catch(e){}
+}
+function midiLoadCfg(){try{return JSON.parse(localStorage.getItem(MIDI_KEY)||'null')}catch(e){return null}}
 function midiRefreshPorts(){
   if(!MO.access)return;
-  const outs=[...MO.access.outputs.values()];
-  const sel=$('midiPort'),prev=sel.value;
+  const outs=[...MO.access.outputs.values()],cfg=midiLoadCfg()||{};
+  const byName=n=>{const o=outs.find(x=>x.name===n);return o?o.id:null};
+  const sel=$('midiPort'),prev=sel.value||byName(cfg.bassPort);
   sel.innerHTML='<option value="">— nicht verbunden —</option>'+outs.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
-  if(outs.length){sel.value=outs.some(o=>o.id===prev)?prev:outs[0].id;MO.out=MO.access.outputs.get(sel.value)||null}
+  if(outs.length)sel.value=outs.some(o=>o.id===prev)?prev:outs[0].id;
+  MO.out=MO.access.outputs.get(sel.value)||null;
+  const ds=$('midiDrumPort'),dprev=ds.value&&ds.value!=='same'?ds.value:(cfg.drumPort==='off'||cfg.drumPort==='same'?cfg.drumPort:(byName(cfg.drumPort)||'same'));
+  ds.innerHTML='<option value="same">— wie Bass —</option><option value="off">— aus —</option>'+outs.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
+  ds.value=['same','off'].includes(dprev)||outs.some(o=>o.id===dprev)?dprev:'same';
+  MO.outDrum=midiDrumOut();
   $('midiDot').className='midi-dot'+(MO.out?' ok':'');
-  $('midiInfo').textContent=MO.out?('verbunden · '+MO.out.name):(outs.length?'Port wählen':'kein MIDI-Ausgang gefunden');
+  const d=MO.outDrum;
+  $('midiInfo').textContent=MO.out?('Bass → '+MO.out.name+' · Drums → '+(d?d.name:'aus')):(outs.length?'Port wählen':'kein MIDI-Ausgang gefunden');
 }
 async function midiConnect(){
   if(!navigator.requestMIDIAccess){
@@ -1516,68 +1551,113 @@ function midiStepEvents(p,i,t,stepMs){
   const ch=midiChanVal('midiChan'),dch=midiChanVal('midiDrumChan'),
     vA=Math.max(1,Math.min(127,+$('midiVelAcc').value||120)),
     vN=Math.max(1,Math.min(127,+$('midiVelNorm').value||88));
-  const s=p.steps[i]||step();
-  if(s.type==='note'){
-    let k=1;while(k<p.length&&(p.steps[(i+k)%p.length]||step()).type==='tie')k++;
-    const note=midiNoteFor(s),vel=s.accent?vA:vN,
-      dur=stepMs*k*(s.slide?1.06:.56);
-    midiSend([0x90|ch,note,vel],t);
-    midiSend([0x80|ch,note,0],t+dur);
-    MO.active.push([0x80|ch,note]);
+  const len=Math.max(1,p.length),s=p.steps[i]||step();
+  if(s.type==='note'&&MO.out){
+    let k=1;while(k<len&&(p.steps[(i+k)%len]||step()).type==='tie')k++;
+    const note=midiNoteFor(s),vel=s.accent?vA:vN,nx=p.steps[(i+k)%len]||step(),
+      glide=!!s.slide&&nx.type==='note',h=MO.held;
+    if(h&&h.ch===ch&&h.note===note){ /* Slide auf gleiche Tonhöhe: halten, nicht neu anschlagen */ }
+    else{
+      midiSend([0x90|ch,note,vel],t);
+      if(h)midiSendTo(h.port,[0x80|h.ch,h.note,0],t+MIDI_LEGATO_MS);   /* Legato: alte Note erst nach der neuen lösen */
+    }
+    if(glide){MO.held={port:MO.out,ch,note}}
+    else{MO.held=null;midiSend([0x80|ch,note,0],t+stepMs*((k-1)+MIDI_GATE))}
+    MO.active.push([MO.out,[0x80|ch,note,0]]);
+  }else if(s.type==='rest'&&MO.held){
+    const h=MO.held;midiSendTo(h.port,[0x80|h.ch,h.note,0],t);MO.held=null;
   }
-  const dm=p.drums||{},notes=String($('midiDrumNotes').value||'36,38,42,46').split(',').map(x=>Math.max(0,Math.min(127,parseInt(x,10)||0)));
+  const dOut=MO.outDrum;if(!dOut)return;
+  const dm=p.drums||{},notes=String($('midiDrumNotes').value||'36,40,42,46').split(',').map(x=>Math.max(0,Math.min(127,parseInt(x,10)||0)));
   [['k',0,110],['s',1,104],['h',2,78],['o',3,86]].forEach(([key,idx,vel])=>{
     if(((+dm[key]||0)>>i)&1){
       const n=notes[idx]??36;
-      midiSend([0x90|dch,n,vel],t);
-      midiSend([0x80|dch,n,0],t+Math.min(90,stepMs*.5));
-      MO.active.push([0x80|dch,n]);
+      midiSendTo(dOut,[0x90|dch,n,vel],t);
+      midiSendTo(dOut,[0x80|dch,n,0],t+Math.min(90,stepMs*.5));
+      MO.active.push([dOut,[0x80|dch,n,0]]);
     }
   });
 }
 function midiSched(){
   if(!MO.playing||!MO.out)return;
-  const p=cur(),bpm=Math.max(60,Math.min(200,previewValue('previewBpm')||p.bpm||132)),
-    stepMs=60000/bpm/4,clock=$('midiClock').checked,now=performance.now();
-  while(MO.next<now+140){
+  const p=cur(),len=Math.max(1,p.length),bpm=Math.max(60,Math.min(200,previewValue('previewBpm')||p.bpm||132)),
+    stepMs=60000/bpm/4,clock=$('midiClock').checked,now=performance.now(),ports=midiPorts();
+  if(MO.next<now-10){                       /* zurückgefallen: Steps überspringen statt Burst */
+    const skip=Math.ceil((now-MO.next)/stepMs);
+    MO.next+=skip*stepMs;MO.step=(MO.step+skip)%len;
+    if(MO.held){const h=MO.held;midiSendTo(h.port,[0x80|h.ch,h.note,0],now);MO.held=null}
+  }
+  while(MO.next<now+MIDI_AHEAD){
     const t=MO.next;
-    if(clock)for(let c=0;c<6;c++)midiSend([0xF8],t+c*stepMs/6);
-    midiStepEvents(p,MO.step%Math.max(1,p.length),t,stepMs);
-    MO.step=(MO.step+1)%Math.max(1,p.length);
+    if(clock)for(let c=0;c<6;c++)ports.forEach(o=>midiSendTo(o,[0xF8],t+c*stepMs/6));
+    midiStepEvents(p,MO.step%len,t,stepMs);
+    MO.step=(MO.step+1)%len;
     MO.next+=stepMs;
   }
   if(MO.active.length>400)MO.active=MO.active.slice(-200);
 }
+function midiTickerStart(){
+  midiTickerStop();
+  try{
+    const src='let id=0;onmessage=e=>{clearInterval(id);if(e.data>0)id=setInterval(()=>postMessage(0),e.data)}';
+    MO.worker=new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'})));
+    MO.worker.onmessage=midiSched;MO.worker.postMessage(MIDI_TICK);
+  }catch(e){MO.worker=null;MO.timer=setInterval(midiSched,MIDI_TICK)}
+}
+function midiTickerStop(){
+  if(MO.worker){try{MO.worker.postMessage(0);MO.worker.terminate()}catch(e){}MO.worker=null}
+  clearInterval(MO.timer);MO.timer=null;
+}
 function midiStart(){
-  if(!MO.out){alert('Kein MIDI-Ausgang gewählt.');return}
-  MO.playing=true;MO.step=0;MO.active=[];
+  if(!MO.out){alert('Kein Bass-Ausgang gewählt.');return}
+  MO.outDrum=midiDrumOut();
+  MO.playing=true;MO.step=0;MO.active=[];MO.held=null;
   MO.next=performance.now()+80;
-  if($('midiClock').checked)midiSend([0xFA],MO.next-4);
-  MO.timer=setInterval(midiSched,25);midiSched();
+  if($('midiClock').checked)midiPorts().forEach(o=>midiSendTo(o,[0xFA],MO.next-4));
+  midiTickerStart();midiSched();
   $('midiPlay').textContent='■ MIDI STOP';$('midiPlay').classList.add('running');
   $('midiDot').className='midi-dot run';
 }
 function midiStop(){
-  MO.playing=false;clearInterval(MO.timer);
+  const wasPlaying=MO.playing;
+  MO.playing=false;midiTickerStop();
   if(MO.out){
-    if($('midiClock').checked)midiSend([0xFC],performance.now());
+    if(wasPlaying&&$('midiClock').checked)midiPorts().forEach(o=>midiSendTo(o,[0xFC],performance.now()));
     midiPanic();
   }
   $('midiPlay').textContent='▶ MIDI START';$('midiPlay').classList.remove('running');
   $('midiDot').className='midi-dot'+(MO.out?' ok':'');
 }
 function midiPanic(){
-  if(!MO.out)return;
-  const now=performance.now();
-  MO.active.forEach(m=>midiSend(m,now));MO.active=[];
-  for(let ch=0;ch<16;ch++){midiSend([0xB0|ch,123,0],now);midiSend([0xB0|ch,120,0],now)}
+  const now=performance.now(),ports=midiPorts();
+  if(MO.held){const h=MO.held;midiSendTo(h.port,[0x80|h.ch,h.note,0],now);MO.held=null}
+  MO.active.forEach(([o,m])=>midiSendTo(o,m,now));MO.active=[];
+  ports.forEach(o=>{for(let ch=0;ch<16;ch++){midiSendTo(o,[0xB0|ch,123,0],now);midiSendTo(o,[0xB0|ch,120,0],now)}});
 }
+function midiApplyBassDev(){const d=MIDI_BASS_DEV[$('midiBassDev').value];if(d)$('midiChan').value=String(d.ch)}
+function midiApplyDrumDev(){const d=MIDI_DRUM_DEV[$('midiDrumDev').value];if(d){$('midiDrumChan').value=String(d.ch);$('midiDrumNotes').value=d.notes}}
 function bindMidi(){
   const chans=Array.from({length:16},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
   $('midiChan').innerHTML=chans;$('midiChan').value='1';
   $('midiDrumChan').innerHTML=chans;$('midiDrumChan').value='10';
+  const cfg=midiLoadCfg();
+  if(cfg){
+    if(cfg.bassDev)$('midiBassDev').value=cfg.bassDev;
+    if(cfg.drumDev)$('midiDrumDev').value=cfg.drumDev;
+    if(cfg.chan)$('midiChan').value=cfg.chan;
+    if(cfg.drumChan)$('midiDrumChan').value=cfg.drumChan;
+    if(cfg.oct!=null)$('midiOct').value=cfg.oct;
+    if(cfg.velAcc)$('midiVelAcc').value=cfg.velAcc;
+    if(cfg.velNorm)$('midiVelNorm').value=cfg.velNorm;
+    if(cfg.notes)$('midiDrumNotes').value=cfg.notes;
+    $('midiClock').checked=!!cfg.clock;
+  }else{midiApplyBassDev();midiApplyDrumDev()}
+  $('midiBassDev').onchange=()=>{midiApplyBassDev();midiSaveCfg()};
+  $('midiDrumDev').onchange=()=>{midiApplyDrumDev();midiSaveCfg()};
+  ['midiChan','midiDrumChan','midiOct','midiVelAcc','midiVelNorm','midiDrumNotes','midiClock'].forEach(id=>$(id).addEventListener('change',midiSaveCfg));
   $('midiConnect').onclick=midiConnect;
-  $('midiPort').onchange=()=>{MO.out=MO.access?MO.access.outputs.get($('midiPort').value)||null:null;midiRefreshPorts()};
+  $('midiPort').onchange=()=>{MO.out=MO.access?MO.access.outputs.get($('midiPort').value)||null:null;midiRefreshPorts();midiSaveCfg()};
+  $('midiDrumPort').onchange=()=>{MO.outDrum=midiDrumOut();midiRefreshPorts();midiSaveCfg()};
   $('midiPlay').onclick=()=>MO.playing?midiStop():midiStart();
   $('midiPanic').onclick=()=>{midiStop();midiPanic()};
   $('exportMidiLoop').onclick=()=>exportLoopMidi(8);
