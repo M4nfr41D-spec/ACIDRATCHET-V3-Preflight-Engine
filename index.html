@@ -17,6 +17,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<script>/* HW-Skin: per ?skin=hw|off oder Schalter in der Navigation, gemerkt in ar_skin */(function(){try{var q=new URLSearchParams(location.search).get("skin");if(q==="hw"||q==="off")localStorage.setItem("ar_skin",q);if(localStorage.getItem("ar_skin")==="hw")document.documentElement.classList.add("hw");}catch(e){}})();</script>
 <link rel="manifest" href="./manifest.webmanifest">
 <script src="./acidratchet-voice.js"></script>
 <script>
@@ -287,14 +288,133 @@ canvas{width:100%;height:120px;display:block;background:#070807;border:1px solid
 .arnav::-webkit-scrollbar{display:none}
 .arnav a{flex:0 0 auto;padding:7px 11px;border:1px solid var(--arnav-linehi);border-radius:7px;background:var(--arnav-pan);font-size:11px;letter-spacing:.06em;color:var(--arnav-dim);text-decoration:none;white-space:nowrap}
 .arnav a.on{color:#0a0c09;background:var(--arnav-acc);border-color:var(--arnav-acc);font-weight:700}
+
+/* Schmale Screens: Export-Knöpfe umbrechen statt seitlich überstehen */
+@media (max-width:700px){.bezel[data-mod="REC · EXPORT"]>.sect{flex:1 1 100% !important;justify-content:flex-start !important;flex-wrap:wrap}}
+/* =================== HW-SKIN (nur aktiv mit html.hw) ===================
+   Eigene Ebene über dem Basis-Look: jedes .bezel wird ein eigenes Gerät
+   (Gunmetal, Schrauben, Typenschild), Knöpfe mit LED-Ring, Tasten mit
+   Hintergrundbeleuchtung, Werte als LCD. Keine Geometrie der Knöpfe
+   geändert, keine IDs, keine Logik. */
+.arnav .skin{margin-left:auto;position:sticky;right:0;box-shadow:-10px 0 12px #0a0c09}
+html.hw .arnav .skin{color:#0a0c09;background:var(--arnav-acc);border-color:var(--arnav-acc);font-weight:700;box-shadow:0 0 12px rgba(200,240,74,.45)}
+html.hw{
+  --hw-c1:#2a2e33; --hw-c2:#17191c; --hw-c3:#0e0f11; --hw-edge:#3a3f45;
+  --hw-cap1:#2b2e32; --hw-cap2:#131517; --hw-lit:#c8ff2e; --hw-lit-dim:rgba(200,255,46,.16);
+}
+html.hw body{background:radial-gradient(120% 70% at 50% -10%,#1a1d20 0%,#08090a 60%)}
+html.hw .unit{background:none;border:0;box-shadow:none;padding:6px 0 10px;max-width:1240px}
+html.hw .unit::before,html.hw .unit::after{display:none}
+
+/* --- Gerät / Gehäuse --- */
+html.hw .unit>header,html.hw .bezel{
+  position:relative;border:1px solid #000;border-radius:10px;
+  background:
+    radial-gradient(circle at 11px 11px,#5a6068 0 1.6px,#1a1c1f 2.1px 3.4px,transparent 3.9px),
+    radial-gradient(circle at calc(100% - 11px) 11px,#5a6068 0 1.6px,#1a1c1f 2.1px 3.4px,transparent 3.9px),
+    radial-gradient(circle at 11px calc(100% - 11px),#5a6068 0 1.6px,#1a1c1f 2.1px 3.4px,transparent 3.9px),
+    radial-gradient(circle at calc(100% - 11px) calc(100% - 11px),#5a6068 0 1.6px,#1a1c1f 2.1px 3.4px,transparent 3.9px),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px),
+    linear-gradient(180deg,var(--hw-c1),var(--hw-c2) 55%,var(--hw-c3));
+  box-shadow:0 0 0 1px var(--hw-edge),0 1px 0 rgba(255,255,255,.10) inset,0 -2px 0 rgba(0,0,0,.55) inset,0 14px 30px rgba(0,0,0,.72);
+}
+html.hw .bezel{padding:30px 18px 18px;margin-bottom:16px}
+html.hw .unit>header{padding:18px 22px;margin-bottom:16px;align-items:center}
+html.hw .bezel[data-mod]::before{
+  content:attr(data-mod);position:absolute;top:8px;left:24px;
+  font:700 9px/1 var(--mono);letter-spacing:2.4px;color:var(--hw-lit);
+  padding:4px 9px;border-radius:3px;background:#0a0b0c;
+  box-shadow:0 1px 2px rgba(0,0,0,.9) inset,0 0 0 1px #2c3136;text-shadow:0 0 6px rgba(200,255,46,.45)}
+html.hw .sect .lab,html.hw .lab{color:#9aa39c}
+html.hw .bezel .row,html.hw .bezel.row{gap:14px}
+html.hw .core-row{background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.05));border:1px solid #0b0c0d;box-shadow:0 1px 0 rgba(255,255,255,.05)}
+
+/* --- Knopf: matte Kappe, Rand, Lime-Strich, LED-Ring mit Wert --- */
+html.hw .knob{
+  background:
+    radial-gradient(circle at 50% 22%,rgba(255,255,255,.13),transparent 46%),
+    radial-gradient(circle,#26292d 0 55%,#3d4248 56.5%,#141618 58.5%,#08090a 100%);
+  border:1px solid #000;
+  box-shadow:0 4px 9px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.08) inset,0 -6px 10px rgba(0,0,0,.55) inset}
+html.hw .knob::before{
+  background:conic-gradient(from 225deg,var(--hw-lit) 0 var(--rot,0deg),rgba(200,255,46,.13) var(--rot,0deg) 270deg,transparent 270deg 360deg);
+  opacity:1;filter:drop-shadow(0 0 3px rgba(200,255,46,.55))}
+html.hw .knob::after{background:var(--hw-lit);width:3px;box-shadow:0 0 5px rgba(200,255,46,.7)}
+html.hw .kc.core .knob::after{width:3.5px}
+html.hw .kl{color:#aeb6ae}
+html.hw .kc.core .kl{color:var(--hw-lit)}
+
+/* --- Tasten: schwarze Kappe, LED-Strich oben, Hintergrundbeleuchtung --- */
+html.hw .btn,html.hw .macroBtn{
+  position:relative;background:linear-gradient(180deg,var(--hw-cap1),var(--hw-cap2));color:#cdd4c9;
+  border:1px solid #000;border-radius:6px;padding:15px 14px 10px;
+  box-shadow:0 0 0 1px #33383d,0 1px 0 rgba(255,255,255,.09) inset,0 -3px 5px rgba(0,0,0,.6) inset,0 3px 6px rgba(0,0,0,.65)}
+html.hw .btn::before,html.hw .macroBtn::before{
+  content:"";position:absolute;top:5px;left:50%;width:14px;height:3px;margin-left:-7px;border-radius:2px;
+  background:#1c1f15;box-shadow:0 0 0 1px #000}
+html.hw .btn.on,html.hw .btn.lime.armed,html.hw .macroBtn.armed{
+  color:var(--hw-lit);background:linear-gradient(180deg,#22261c,#121410);
+  box-shadow:0 0 0 1px var(--hw-lit),0 0 12px rgba(200,255,46,.35),0 0 14px rgba(200,255,46,.28) inset}
+html.hw .btn.on::before,html.hw .btn.lime.armed::before,html.hw .macroBtn.armed::before{background:var(--hw-lit);box-shadow:0 0 6px var(--hw-lit)}
+html.hw .btn.armed{color:#ffb24a;background:linear-gradient(180deg,#2a2116,#15110b);box-shadow:0 0 0 1px #ff9d2e,0 0 12px rgba(255,157,46,.35),0 0 12px rgba(255,157,46,.22) inset}
+html.hw .btn.armed::before{background:#ff9d2e;box-shadow:0 0 6px #ff9d2e}
+html.hw .btn.lime{color:var(--hw-lit)}
+html.hw .btn.play,html.hw #play{
+  color:#0b0d07;font-weight:800;background:linear-gradient(180deg,#e2ff6a,#a6dc16);
+  box-shadow:0 0 0 1px #000,0 0 18px rgba(200,255,46,.55),0 1px 0 rgba(255,255,255,.55) inset,0 -3px 6px rgba(70,100,0,.45) inset}
+html.hw .btn.play::before,html.hw #play::before{background:#0b0d07;box-shadow:none;opacity:.35}
+html.hw .btn.play.on,html.hw #play.on{background:linear-gradient(180deg,#ff6a5c,#c81f12);color:#fff;box-shadow:0 0 0 1px #000,0 0 18px rgba(255,59,59,.55)}
+html.hw .btn:active,html.hw .macroBtn:active{transform:translateY(1px) scale(.98)}
+
+/* --- Segment-Schalter --- */
+html.hw .seg{border:1px solid #000;border-radius:6px;box-shadow:0 0 0 1px #33383d;background:#0d0e10}
+html.hw .seg button{background:linear-gradient(180deg,#22252a,#121416);color:#9aa39c;border-right:1px solid #000;padding:10px 12px}
+html.hw .seg button.on{color:#0a0c08;background:linear-gradient(180deg,#e2ff6a,#a6dc16);box-shadow:0 0 10px rgba(200,255,46,.5) inset}
+
+/* --- Werte als LCD --- */
+html.hw .gr{display:inline-block;padding:3px 7px;border-radius:3px;color:var(--hw-lit);
+  background:linear-gradient(180deg,#0b1206,#060a03);box-shadow:0 1px 4px rgba(0,0,0,.95) inset,0 0 0 1px #2b3136;
+  text-shadow:0 0 6px rgba(200,255,46,.6);font-variant-numeric:tabular-nums}
+html.hw #patNum{font-size:20px !important;padding:4px 10px;letter-spacing:3px}
+html.hw .kv{color:var(--hw-lit);text-shadow:0 0 5px rgba(200,255,46,.45)}
+
+/* --- Step-Pads --- */
+html.hw .st{background:linear-gradient(180deg,#25282c,#121416);border:1px solid #000;border-radius:6px;
+  box-shadow:0 0 0 1px #30353a,0 1px 0 rgba(255,255,255,.08) inset,0 -4px 7px rgba(0,0,0,.55) inset,0 3px 5px rgba(0,0,0,.6)}
+html.hw .st .led{width:14px;height:3px;border-radius:2px;background:#1c1f15}
+html.hw .st.on{background:linear-gradient(180deg,#22271a,#11140d);
+  box-shadow:0 0 0 1px rgba(200,255,46,.75),0 0 10px rgba(200,255,46,.22),0 0 14px rgba(200,255,46,.22) inset}
+html.hw .st.on .led{background:var(--hw-lit);box-shadow:0 0 7px var(--hw-lit)}
+html.hw .st.cur{outline:0;box-shadow:0 0 0 2px var(--hw-lit),0 0 16px rgba(200,255,46,.55),0 0 18px rgba(200,255,46,.4) inset}
+html.hw .st.sel{box-shadow:0 0 0 2px #ff9d2e,0 0 12px rgba(255,157,46,.35) inset}
+html.hw .dst{background:linear-gradient(180deg,#202327,#111315);border:1px solid #000;box-shadow:0 0 0 1px #2c3136}
+html.hw .dst.beat{box-shadow:0 0 0 1px #4a5157}
+html.hw .dst.on{background:linear-gradient(180deg,#e2ff6a,#a6dc16);box-shadow:0 0 0 1px #000,0 0 8px rgba(200,255,46,.55)}
+html.hw .dst.cur{outline:2px solid rgba(255,255,255,.55)}
+
+/* --- Anordnung: breit = Geräte nebeneinander, schmal = gestapelt --- */
+@media (min-width:1100px){
+  html.hw .unit{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px;grid-auto-flow:row dense}
+  html.hw .unit>*{grid-column:1/-1;min-width:0}
+  html.hw .unit>.bezel[data-mod="MACROS"],html.hw .unit>.bezel[data-mod="OSC · CLOCK"],
+  html.hw .unit>.bezel[data-mod="REC · EXPORT"],html.hw .unit>.bezel[data-mod="FX BRIDGE"],
+  html.hw .unit>.bezel[data-mod="FX BANK"],html.hw .unit>.bezel[data-mod="ARP"],
+  html.hw .unit>.bezel[data-mod="GROOVE · SCOPE"],html.hw .unit>.bezel[data-mod="PRESETS"]{grid-column:auto}
+}
+@media (max-width:560px){
+  html.hw .bezel{padding:30px 10px 12px;border-radius:9px}
+  html.hw .bezel[data-mod]::before{left:20px}
+  html.hw .btn{padding:14px 11px 9px}
+}
 </style>
 </head>
 <body>
 <nav class="arnav">
-  <a href="./index.html" class="on">MF79 SYNTH</a>
+  <a href="./index.html" class="on">MF84 SYNTH</a>
   <a href="./ACIDRATCHET_TD3MO_TRANSLATOR.html">TRANSLATOR</a>
   <a href="./ACIDRATCHET_FX_LAB.html">FX LAB</a>
   <a href="./ACIDRATCHET_SONGBOOK.html">SONGBOOK</a>
+  <a href="#" id="skinToggle" class="skin" title="Hardware-Optik an/aus">HW</a>
 </nav>
 <div class="unit">
   <header>
@@ -309,7 +429,7 @@ canvas{width:100%;height:120px;display:block;background:#070807;border:1px solid
   </header>
 
   <!-- SYNTH KNOBS -->
-  <div class="bezel row">
+  <div class="bezel row" data-mod="VOICE · MF-303">
     <div class="sect">
       <div class="lab" style="color:var(--acc);letter-spacing:1.5px">⚡ Performance</div>
       <div class="knobs core-row">
@@ -353,7 +473,7 @@ canvas{width:100%;height:120px;display:block;background:#070807;border:1px solid
   </div>
 
   <!-- PERFORMANCE MACROS -->
-  <div class="bezel macros-bar">
+  <div class="bezel macros-bar" data-mod="MACROS">
     <div class="macros-lab">⚡ Performance<br>Macros</div>
     <div class="macros" id="macros">
       <button class="macroBtn" data-macro="ACID">ACID</button>
@@ -365,7 +485,7 @@ canvas{width:100%;height:120px;display:block;background:#070807;border:1px solid
   </div>
 
   <!-- WAVE / DIST MODE / TEMPO / VOLUME -->
-  <div class="bezel row" style="align-items:center">
+  <div class="bezel row" data-mod="OSC · CLOCK" style="align-items:center">
     <div class="sect" style="flex:0 0 auto">
       <div class="lab">Waveform</div>
       <div class="seg" id="wave"><button data-w="0" class="on">SAW</button><button data-w="1">SQUARE</button><button data-w="2">S&amp;H</button><button data-w="3">SUPER</button><button data-w="4">SYNC</button></div>
@@ -411,7 +531,7 @@ canvas{width:100%;height:120px;display:block;background:#070807;border:1px solid
     </div>
   </div>
 
-  <div class="bezel row" style="align-items:center;border-color:rgba(174,240,34,.35)">
+  <div class="bezel row" data-mod="REC · EXPORT" style="align-items:center;border-color:rgba(174,240,34,.35)">
     <div class="sect">
       <div class="lab" style="color:var(--acc)">Performance Export</div>
       <div style="font-size:11px;line-height:1.5;color:var(--txt-dim)">Der WAV-Recorder greift das interne Master-Signal nach Synth, Drums, Drive und Glue ab. Aufnahme starten, live performen, erneut drücken: Die exakt gehörte Performance wird als 16-Bit-WAV gespeichert.</div>
@@ -427,7 +547,7 @@ canvas{width:100%;height:120px;display:block;background:#070807;border:1px solid
 
 
   <!-- ACIDRATCHET FX BRIDGE -->
-  <div class="bezel fxbridge" id="fxBridgePanel">
+  <div class="bezel fxbridge" data-mod="FX BRIDGE" id="fxBridgePanel">
     <div class="fx-head">
       <div><div class="fx-title">FX BANK A · SHARED CORE</div><div class="fx-status" id="fxStatus">FX Core bereit</div></div>
       <select class="fx-select" id="fxPresetSelect"></select>
@@ -455,7 +575,7 @@ canvas{width:100%;height:120px;display:block;background:#070807;border:1px solid
   </div>
 
   <!-- FX BANK · One-Shots zum Abfeuern -->
-  <div class="bezel" id="fxBankPanel">
+  <div class="bezel" data-mod="FX BANK" id="fxBankPanel">
     <div class="fx-head">
       <div><div class="fx-title">FX BANK · ONE-SHOTS</div><div class="fx-status" id="fxBankStatus">Knopf drücken — Sound kommt auf dem Takt</div></div>
     </div>
@@ -467,7 +587,7 @@ canvas{width:100%;height:120px;display:block;background:#070807;border:1px solid
   </div>
 
   <!-- ARPEGGIO -->
-  <div class="bezel row" style="align-items:center">
+  <div class="bezel row" data-mod="ARP" style="align-items:center">
     <div class="sect" style="flex:0 0 auto"><div class="lab">Arpeggio</div>
       <div class="seg"><button id="arpBtn">OFF</button></div></div>
     <div class="sect" style="flex:0 0 auto"><div class="lab">Arp Mode</div>
@@ -479,7 +599,7 @@ canvas{width:100%;height:120px;display:block;background:#070807;border:1px solid
   </div>
 
   <!-- SEQUENCER -->
-  <div class="bezel">
+  <div class="bezel" data-mod="SEQUENCER">
     <div class="lab">Step Sequencer <span class="gr" id="patName" style="letter-spacing:1px">CLASSIC ACID</span></div>
     <div class="tools" style="margin-bottom:8px">
       <span class="lab" style="margin:0 6px 0 0">Pattern</span>
@@ -563,7 +683,7 @@ canvas{width:100%;height:120px;display:block;background:#070807;border:1px solid
   </div>
 
   <!-- DRUMS -->
-  <div class="bezel">
+  <div class="bezel" data-mod="DRUM UNIT">
     <div class="lab">Drum Machine <span class="gr" id="drumState" style="letter-spacing:1px">ON</span></div>
     <div class="tools" style="margin-bottom:8px">
       <button class="btn on" id="drumToggle">Drums: AN</button>
@@ -597,7 +717,7 @@ canvas{width:100%;height:120px;display:block;background:#070807;border:1px solid
   </div>
 
   <!-- BOTTOM UTIL -->
-  <div class="bezel row" style="align-items:flex-start">
+  <div class="bezel row" data-mod="GROOVE · SCOPE" style="align-items:flex-start">
     <div class="sect">
       <div class="lab">Groove &amp; Gate</div>
       <div class="knobs">
@@ -612,7 +732,7 @@ canvas{width:100%;height:120px;display:block;background:#070807;border:1px solid
     </div>
   </div>
 
-  <div class="bezel">
+  <div class="bezel" data-mod="PRESETS">
     <div class="lab">Presets</div>
     <div class="presets" id="presets"></div>
   </div>
@@ -1237,7 +1357,7 @@ canvas{width:100%;height:120px;display:block;background:#070807;border:1px solid
 </script>
 <script>
 "use strict";
-var VER="7.1 MF88-CAL+GEN";
+var VER="7.2 MF88-CAL+GEN+HW";
 try{
  console.log('%c ACIDRATCHET-MF79 ','background:#aef022;color:#0a0c08;font-size:18px;font-weight:bold;padding:4px 12px;border-radius:5px');
  console.log('%c© 2026 Manfred Foissner — All rights reserved.\nUnauthorized copying, redistribution or reuse of this code is prohibited.','color:#aef022;font-size:12px;line-height:1.5');
@@ -2471,5 +2591,8 @@ function loadPreset(name){
   if(!running)start();
 }
 </script>
+<script>/* HW-Skin-Schalter */(function(){var b=document.getElementById('skinToggle');if(!b)return;
+b.addEventListener('click',function(e){e.preventDefault();var on=document.documentElement.classList.toggle('hw');
+try{localStorage.setItem('ar_skin',on?'hw':'off')}catch(_){} });})();</script>
 </body>
 </html>
