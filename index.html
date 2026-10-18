@@ -771,7 +771,7 @@ html.hw .dst.cur{outline:2px solid rgba(255,255,255,.55)}
 (function (global) {
   'use strict';
 
-  const VERSION = '0.1.0';
+  const VERSION = '0.1.1';
   const SCHEMA = 'acidratchet.fx-preset';
   const PRESET_KEY = 'acidratchet_fx_presets_v1';
   const ACTIVE_KEY = 'acidratchet_fx_active_v1';
@@ -971,6 +971,18 @@ html.hw .dst.cur{outline:2px solid rgba(255,255,255,.55)}
     return map[division] || beat / 2;
   }
 
+  /* Der alte Folder y = |((z+1) % 4) - 2| - 1 ist auf [-1,1] identisch zu -z:
+     er invertierte das Signal, statt es zu falten. Zusammen mit `asymmetry`
+     ergab das einen konstanten Gleichspannungsversatz (gemessen bis -0.31),
+     der als Brumm auf dem FX-Bus landete. Jetzt: echtes Dreieck (tri(z) = z
+     fuer |z| <= 1, also keine Inversion), Kurve DC-zentriert und auf Spitzen-
+     wert normiert. Bitcrush erst danach, auf dem zentrierten Signal. */
+  function triFold(z) {
+    let t = (z + 1) % 4;
+    if (t < 0) t += 4;
+    return 1 - Math.abs(t - 2);
+  }
+
   function makeDriveCurve(amount, fold, bits, asymmetry) {
     const n = 4096;
     const curve = new Float32Array(n);
@@ -979,17 +991,25 @@ html.hw .dst.cur{outline:2px solid rgba(255,255,255,.55)}
     const bitCount = Math.max(3, Math.min(16, Math.round(bits || 16)));
     const levels = Math.pow(2, bitCount - 1);
     const asym = clamp(asymmetry || 0, -0.45, 0.45);
-    for (let i = 0; i < n; i++) {
-      let x = (i / (n - 1)) * 2 - 1;
-      x += asym * (x >= 0 ? 1 : -0.35);
+    const shape = (x0) => {
+      const x = x0 + asym * (x0 >= 0 ? 1 : -0.35);
       let y = Math.tanh(x * drive) / Math.tanh(drive);
       if (fld > 0.001) {
         const z = y * (1 + fld * 3.5);
-        y = Math.abs(((z + 1) % 4) - 2) - 1;
-        y = y * (0.58 + fld * 0.24) + Math.tanh(z) * (0.42 - fld * 0.20);
+        y = triFold(z) * (0.58 + fld * 0.24) + Math.tanh(z) * (0.42 - fld * 0.20);
       }
-      y = Math.round(y * levels) / levels;
-      curve[i] = clamp(y, -1, 1);
+      return y;
+    };
+    const dc = shape(0);
+    let peak = 1e-9;
+    for (let i = 0; i < n; i++) {
+      const y = shape((i / (n - 1)) * 2 - 1) - dc;
+      curve[i] = y;
+      const a = Math.abs(y); if (a > peak) peak = a;
+    }
+    const norm = peak > 1 ? 1 / peak : 1 / Math.max(0.35, peak);
+    for (let i = 0; i < n; i++) {
+      curve[i] = clamp(Math.round(curve[i] * norm * levels) / levels, -1, 1);
     }
     return curve;
   }
@@ -1044,7 +1064,7 @@ html.hw .dst.cur{outline:2px solid rgba(255,255,255,.55)}
       base.time = divisions[Math.max(0, Math.min(divisions.length - 1, baseIndex + shift))];
       base.tone = clamp(base.tone * (0.65 + m.character * 0.70), 900, 12000);
       base.drive = clamp(base.drive + (m.character - 0.5) * 0.42, 0, 0.92);
-      base.feedback = clamp(base.feedback + (m.depth - 0.5) * 0.34, 0, 0.92);
+      base.feedback = clamp(base.feedback + (m.depth - 0.5) * 0.34, 0, 0.85);
       base.mix = clamp(base.mix + (m.mix - 0.5) * 0.52, 0, 0.95);
     } else if (p.engine === 'space') {
       base.damping = clamp(base.damping * (0.68 + m.character * 0.64), 1000, 16000);
@@ -1088,7 +1108,7 @@ html.hw .dst.cur{outline:2px solid rgba(255,255,255,.55)}
       params = merge(params, next || {});
       const now = ctx.currentTime;
       delay.delayTime.setTargetAtTime(divisionSeconds(bpm, params.time), now, 0.025);
-      feedback.gain.setTargetAtTime(clamp(params.feedback, 0, 0.92), now, 0.025);
+      feedback.gain.setTargetAtTime(clamp(params.feedback, 0, 0.85), now, 0.025);
       tone.frequency.setTargetAtTime(clamp(params.tone, 600, 16000), now, 0.02);
       lowCut.frequency.setTargetAtTime(clamp(params.lowCut, 20, 1800), now, 0.02);
       saturator.curve = makeFeedbackCurve(params.drive || 0);
@@ -1136,7 +1156,8 @@ html.hw .dst.cur{outline:2px solid rgba(255,255,255,.55)}
     const shaper = ctx.createWaveShaper(); shaper.oversample = '2x';
     const highCut = ctx.createBiquadFilter(); highCut.type = 'lowpass'; highCut.Q.value = 0.4;
     const output = ctx.createGain();
-    input.connect(lowCut); lowCut.connect(preGain); preGain.connect(shaper); shaper.connect(highCut); highCut.connect(output);
+    const dcBlock = ctx.createBiquadFilter(); dcBlock.type = 'highpass'; dcBlock.frequency.value = 22; dcBlock.Q.value = 0.707;
+    input.connect(lowCut); lowCut.connect(preGain); preGain.connect(shaper); shaper.connect(dcBlock); dcBlock.connect(highCut); highCut.connect(output);
     let params = copy(ENGINE_DEFAULTS.corrosion);
     function apply(next) {
       params = merge(params, next || {});
@@ -1148,7 +1169,7 @@ html.hw .dst.cur{outline:2px solid rgba(255,255,255,.55)}
       output.gain.setTargetAtTime(clamp(params.mix, 0, 1) * 0.82, now, 0.02);
     }
     function setBpm() {}
-    function destroy() { [input, lowCut, preGain, shaper, highCut, output].forEach((n) => { try { n.disconnect(); } catch (_) {} }); }
+    function destroy() { [input, lowCut, preGain, shaper, dcBlock, highCut, output].forEach((n) => { try { n.disconnect(); } catch (_) {} }); }
     apply(params);
     return { input, output, apply, setBpm, destroy };
   }
@@ -1373,11 +1394,10 @@ html.hw .dst.cur{outline:2px solid rgba(255,255,255,.55)}
     util: Object.freeze({ clamp, uid, copy, merge })
   });
 })(window);
-
 </script>
 <script>
 "use strict";
-var VER="7.2 MF88-CAL+GEN+HW";
+var VER="7.3 MF88-CAL+GEN+HW";
 try{
  console.log('%c ACIDRATCHET-MF79 ','background:#aef022;color:#0a0c08;font-size:18px;font-weight:bold;padding:4px 12px;border-radius:5px');
  console.log('%c© 2026 Manfred Foissner — All rights reserved.\nUnauthorized copying, redistribution or reuse of this code is prohibited.','color:#aef022;font-size:12px;line-height:1.5');

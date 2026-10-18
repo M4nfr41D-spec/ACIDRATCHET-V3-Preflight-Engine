@@ -1,0 +1,11 @@
+{
+  "name": "acidratchet-wp-build",
+  "private": true,
+  "type": "module",
+  "description": "Baut das WordPress-Plugin mit verschleierter Suite",
+  "scripts": { "build": "node build.mjs" },
+  "devDependencies": {
+    "html-minifier-terser": "7.2.0",
+    "terser": "5.31.6"
+  }
+}
