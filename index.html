@@ -394,12 +394,32 @@ html.hw .dst.cur{outline:2px solid rgba(255,255,255,.55)}
 
 /* --- Anordnung: breit = Geräte nebeneinander, schmal = gestapelt --- */
 @media (min-width:1100px){
-  html.hw .unit{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px;grid-auto-flow:row dense}
-  html.hw .unit>*{grid-column:1/-1;min-width:0}
-  html.hw .unit>.bezel[data-mod="MACROS"],html.hw .unit>.bezel[data-mod="OSC · CLOCK"],
-  html.hw .unit>.bezel[data-mod="REC · EXPORT"],html.hw .unit>.bezel[data-mod="FX BRIDGE"],
-  html.hw .unit>.bezel[data-mod="FX BANK"],html.hw .unit>.bezel[data-mod="ARP"],
-  html.hw .unit>.bezel[data-mod="GROOVE · SCOPE"],html.hw .unit>.bezel[data-mod="PRESETS"]{grid-column:auto}
+  /* Breit: Geräte nach Funktion gruppiert, Breite nach Inhalt (12er-Raster) */
+  html.hw .unit{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:16px}
+  html.hw .unit>*{grid-column:span 12;min-width:0}
+  html.hw .unit>header{order:0}
+  html.hw .unit>[data-mod="VOICE · MF-303"]{order:1}
+  html.hw .unit>[data-mod="OSC · CLOCK"]{order:2;grid-column:span 8}
+  html.hw .unit>[data-mod="MACROS"]{order:3;grid-column:span 4}
+  html.hw .unit>[data-mod="SEQUENCER"]{order:4}
+  html.hw .unit>[data-mod="DRUM UNIT"]{order:5}
+  html.hw .unit>[data-mod="GROOVE · SCOPE"]{order:6;grid-column:span 8}
+  html.hw .unit>[data-mod="ARP"]{order:7;grid-column:span 4}
+  html.hw .unit>[data-mod="FX BRIDGE"]{order:8;grid-column:span 6}
+  html.hw .unit>[data-mod="FX BANK"]{order:9;grid-column:span 6}
+  html.hw .unit>[data-mod="REC · EXPORT"]{order:10;grid-column:span 6}
+  html.hw .unit>[data-mod="PRESETS"]{order:11;grid-column:span 6}
+  html.hw .unit>.copyright{order:12}
+  /* Schmale Spalten füllen statt leer zu bleiben */
+  html.hw .macros-bar{flex-direction:column;align-items:stretch;justify-content:center;gap:12px}
+  html.hw .macros{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:0 0 auto}
+  html.hw .macroBtn{min-width:0;padding:22px 8px 16px}
+  html.hw .macroBtn.neutral{grid-column:1/-1}
+  html.hw .bezel[data-mod="ARP"]{flex-direction:column;align-items:stretch !important;justify-content:center;gap:14px}
+  html.hw .bezel[data-mod="ARP"]>.sect{flex:0 0 auto}
+  html.hw .bezel[data-mod="ARP"] .seg{display:flex}
+  html.hw .bezel[data-mod="ARP"] .seg button{flex:1}
+  html.hw [data-mod="GROOVE · SCOPE"] canvas{height:230px}
 }
 @media (max-width:560px){
   html.hw .bezel{padding:30px 10px 12px;border-radius:9px}
