@@ -33,6 +33,10 @@ class Acidratchet_Elementor_Widget extends \Elementor\Widget_Base {
 		return array( 'acidratchet-embed' );
 	}
 
+	public function get_style_depends() {
+		return array( 'acidratchet-embed' );
+	}
+
 	protected function register_controls() {
 		$this->start_controls_section(
 			'section_app',
@@ -49,7 +53,7 @@ class Acidratchet_Elementor_Widget extends \Elementor\Widget_Base {
 		$this->add_control(
 			'tool',
 			array(
-				'label'   => 'Werkzeug',
+				'label'   => 'Start-Werkzeug',
 				'type'    => \Elementor\Controls_Manager::SELECT,
 				'default' => 'synth',
 				'options' => $options,
@@ -66,7 +70,18 @@ class Acidratchet_Elementor_Widget extends \Elementor\Widget_Base {
 					'hw'      => 'Hardware (HW)',
 					'classic' => 'Klassisch',
 				),
-				'condition' => array( 'tool' => 'synth' ),
+			)
+		);
+
+		$this->add_control(
+			'menu',
+			array(
+				'label'        => 'Menüleiste (Synth · Pattern Studio · FX Lab · Songbook)',
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => 'An',
+				'label_off'    => 'Aus',
+				'return_value' => 'yes',
+				'default'      => 'yes',
 			)
 		);
 
@@ -99,7 +114,7 @@ class Acidratchet_Elementor_Widget extends \Elementor\Widget_Base {
 		$this->add_control(
 			'fullscreen',
 			array(
-				'label'        => 'Link „Im Vollbild öffnen“',
+				'label'        => 'Link „Vollbild“',
 				'type'         => \Elementor\Controls_Manager::SWITCHER,
 				'label_on'     => 'An',
 				'label_off'    => 'Aus',
@@ -118,6 +133,7 @@ class Acidratchet_Elementor_Widget extends \Elementor\Widget_Base {
 				'tool'       => isset( $s['tool'] ) ? $s['tool'] : 'synth',
 				'skin'       => isset( $s['skin'] ) ? $s['skin'] : 'hw',
 				'height'     => ( isset( $s['height_mode'] ) && 'fixed' === $s['height_mode'] ) ? (string) absint( $s['height'] ) : 'auto',
+				'menu'       => ( ! isset( $s['menu'] ) || 'yes' === $s['menu'] ) ? '1' : '0',
 				'fullscreen' => ( isset( $s['fullscreen'] ) && 'yes' === $s['fullscreen'] ) ? '1' : '0',
 			)
 		);

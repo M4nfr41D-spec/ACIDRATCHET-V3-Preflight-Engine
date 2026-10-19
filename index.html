@@ -63,6 +63,7 @@ if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
 <meta name="apple-mobile-web-app-title" content="ACIDRATCHET">
 <meta name="theme-color" content="#050604">
 <script>/* PWA: im Home-Screen-Modus Suite-Links im selben Fenster oeffnen (sonst getrennter Speicher) */(function(){var sa=window.navigator.standalone===true||(window.matchMedia&&matchMedia("(display-mode: standalone)").matches);if(!sa)return;var o=window.open;window.open=function(u){if(typeof u==="string"&&/^\.\//.test(u)){location.href=u;return window;}return o.apply(window,arguments);};})();</script>
+<script>/* EMBED: läuft das Tool im ACIDRATCHET-Widget (WordPress), gehen alle Sprünge zwischen den Tools über die Menüleiste des Widgets statt neue Fenster zu öffnen; die eigene Navigation wird dann ausgeblendet. */(function(){var P=null;try{if(window.parent!==window&&window.parent.ACIDRATCHET_EMBED)P=window.parent.ACIDRATCHET_EMBED;}catch(e){}if(!P)return;document.documentElement.classList.add("embed");var re=/^\.\/[A-Za-z0-9_]+\.html/;var go=function(u){try{return P.open(String(u),window);}catch(e){return false;}};var o=window.open;window.open=function(u){if(typeof u==="string"&&re.test(u)&&go(u))return window;return o.apply(window,arguments);};document.addEventListener("click",function(e){var a=e.target&&e.target.closest?e.target.closest("a[href]"):null;if(!a)return;var h=a.getAttribute("href")||"";if(re.test(h)&&go(h)){e.preventDefault();e.stopPropagation();}},true);var s=document.createElement("style");s.textContent="html.embed .arnav{display:none!important}";document.head.appendChild(s);})();</script>
 <title>ACIDRATCHET-MF79 · FX Bridge Performance Machine</title>
 <meta name="author" content="Manfred Foissner">
 <meta name="copyright" content="(c) 2026 Manfred Foissner. All rights reserved.">
@@ -422,6 +423,8 @@ html.hw .dst.cur{outline:2px solid rgba(255,255,255,.55)}
   html.hw [data-mod="GROOVE · SCOPE"] canvas{height:230px}
 }
 @media (max-width:560px){
+  html.hw .unit>header{flex-wrap:wrap;padding:16px 14px}
+  html.hw .unit>header .psy{text-align:left}
   html.hw .bezel{padding:30px 10px 12px;border-radius:9px}
   html.hw .bezel[data-mod]::before{left:20px}
   html.hw .btn{padding:14px 11px 9px}
@@ -1397,7 +1400,7 @@ html.hw .dst.cur{outline:2px solid rgba(255,255,255,.55)}
 </script>
 <script>
 "use strict";
-var VER="7.3 MF88-CAL+GEN+HW";
+var VER="7.4 MF88-CAL+GEN+HW";
 try{
  console.log('%c ACIDRATCHET-MF79 ','background:#aef022;color:#0a0c08;font-size:18px;font-weight:bold;padding:4px 12px;border-radius:5px');
  console.log('%c© 2026 Manfred Foissner — All rights reserved.\nUnauthorized copying, redistribution or reuse of this code is prohibited.','color:#aef022;font-size:12px;line-height:1.5');

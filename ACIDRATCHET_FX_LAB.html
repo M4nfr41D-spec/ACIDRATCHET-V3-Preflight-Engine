@@ -2,6 +2,7 @@
 <html lang="de">
 <head>
 <script>/* PWA: im Home-Screen-Modus Suite-Links im selben Fenster oeffnen (sonst getrennter Speicher) */(function(){var sa=window.navigator.standalone===true||(window.matchMedia&&matchMedia("(display-mode: standalone)").matches);if(!sa)return;var o=window.open;window.open=function(u){if(typeof u==="string"&&/^\.\//.test(u)){location.href=u;return window;}return o.apply(window,arguments);};})();</script>
+<script>/* EMBED: läuft das Tool im ACIDRATCHET-Widget (WordPress), gehen alle Sprünge zwischen den Tools über die Menüleiste des Widgets statt neue Fenster zu öffnen; die eigene Navigation wird dann ausgeblendet. */(function(){var P=null;try{if(window.parent!==window&&window.parent.ACIDRATCHET_EMBED)P=window.parent.ACIDRATCHET_EMBED;}catch(e){}if(!P)return;document.documentElement.classList.add("embed");var re=/^\.\/[A-Za-z0-9_]+\.html/;var go=function(u){try{return P.open(String(u),window);}catch(e){return false;}};var o=window.open;window.open=function(u){if(typeof u==="string"&&re.test(u)&&go(u))return window;return o.apply(window,arguments);};document.addEventListener("click",function(e){var a=e.target&&e.target.closest?e.target.closest("a[href]"):null;if(!a)return;var h=a.getAttribute("href")||"";if(re.test(h)&&go(h)){e.preventDefault();e.stopPropagation();}},true);var s=document.createElement("style");s.textContent="html.embed .arnav{display:none!important}";document.head.appendChild(s);})();</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>ACIDRATCHET FX LAB v0.1</title>
@@ -122,7 +123,7 @@ const PARAMS={
   {k:'tone',l:'TONE',min:700,max:18000,step:100,fmt:v=>Math.round(v)+' Hz'},
   {k:'mix',l:'BASE MIX',min:0,max:1,step:.01,fmt:v=>Math.round(v*100)+'%'}]
 };
-var ARFX_BUILD_VERSION='0.1.0';
+var ARFX_BUILD_VERSION='0.1.1';
 if(typeof ARFX==='undefined'||ARFX.VERSION!==ARFX_BUILD_VERSION){
   var arfxVersionMsg='FX Core Versionskonflikt: FX LAB erwartet '+ARFX_BUILD_VERSION+', geladen ist '+(typeof ARFX!=='undefined'?ARFX.VERSION:'kein ARFX')+' — acidratchet-fx-core.js prüfen.';
   console.error(arfxVersionMsg);
