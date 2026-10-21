@@ -1,0 +1,12 @@
+{
+  "name": "acidratchet-suite",
+  "private": true,
+  "version": "7.5.0",
+  "scripts": {
+    "test": "node --test tests/voice.test.cjs",
+    "test:browser": "node tests/browser-smoke.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}
