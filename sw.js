@@ -2,7 +2,7 @@
    Strategie: beim Installieren alles in den Cache, danach network-first mit
    Cache als Rueckfall. So bekommst du online immer den frischen Stand und
    ohne Netz trotzdem die App. Beim Versionswechsel CACHE hochzaehlen. */
-const CACHE = 'acidratchet-v9';
+const CACHE = 'acidratchet-v10-dt64';
 const FILES = [
   './',
   './index.html',
@@ -10,6 +10,7 @@ const FILES = [
   './ACIDRATCHET_SONGBOOK.html',
   './ACIDRATCHET_FX_LAB.html',
   './acidratchet-voice.js?v=7.5',
+  './acidratchet-patterns.js?v=dt64-1',
   './acidratchet-fx-core.js',
   './manifest.webmanifest',
   './icon-192.png',

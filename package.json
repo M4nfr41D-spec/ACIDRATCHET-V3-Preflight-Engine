@@ -4,7 +4,8 @@
   "version": "7.5.0",
   "scripts": {
     "test": "node --test tests/voice.test.cjs",
-    "test:browser": "node tests/browser-smoke.cjs"
+    "test:browser": "node tests/browser-smoke.cjs",
+    "test:patterns": "node tests/dt64-browser.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"
