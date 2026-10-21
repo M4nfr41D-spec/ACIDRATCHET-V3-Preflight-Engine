@@ -20,6 +20,7 @@
 <script>/* HW-Skin: per ?skin=hw|off oder Schalter in der Navigation, gemerkt in ar_skin */(function(){try{var q=new URLSearchParams(location.search).get("skin");if(q==="hw"||q==="off")localStorage.setItem("ar_skin",q);if(localStorage.getItem("ar_skin")==="hw")document.documentElement.classList.add("hw");}catch(e){}})();</script>
 <link rel="manifest" href="./manifest.webmanifest">
 <script src="./acidratchet-voice.js?v=7.5"></script>
+<script src="./acidratchet-patterns.js?v=dt64-1"></script>
 <script>
 /* ===== Transport-Sperre zwischen den Werkzeugen =====
    ACIDRATCHET und das Pattern Studio laufen in getrennten Tabs mit je
@@ -768,6 +769,9 @@ html.hw .dst.cur{outline:2px solid rgba(255,255,255,.55)}
   <div class="bezel" data-mod="PRESETS">
     <div class="lab">Presets</div>
     <div class="presets" id="presets"></div>
+    <div class="lab" style="margin-top:14px">DT64 · MOGUAI vs. Kai Tracid · nur Pattern</div>
+    <div class="presets" id="sourcePatterns"></div>
+    <div style="font-size:11px;color:var(--dim);margin-top:8px">Fotovorlage · Grundoktave E2 angenommen · Tempo, Klang und Drums bleiben beim Laden erhalten.</div>
   </div>
   <div class="copyright">
     <span class="yr">© 2026</span> Manfred Foissner · <b>ACIDRATCHET-MF79</b> · Alle Rechte vorbehalten<br>
@@ -2640,6 +2644,17 @@ document.getElementById('referencePath').addEventListener('change',function(){UI
 updateDevilFishControls();
 consumeTranslatorHandoff();
 const pc=document.getElementById('presets');
+window.ARPatternPacks.forEach(pack=>pack.parts.forEach(part=>{
+  const b=document.createElement('button'); b.className='preset';
+  b.textContent=pack.name+' '+part.role; b.title=part.hint;
+  b.addEventListener('click',()=>{
+    applyPat(part); curStep=0;
+    document.getElementById('patName').textContent=b.textContent;
+    updatePatUI(); updateSel(); renderSteps();
+    setStatus(b.textContent+' geladen · Grundoktave E2 angenommen');
+  });
+  document.getElementById('sourcePatterns').appendChild(b);
+}));
 Object.keys(PRESETS).forEach(name=>{const b=document.createElement('button');b.className='preset';b.textContent=name;
   b.addEventListener('click',()=>loadPreset(name));pc.appendChild(b);});
 function loadPreset(name){
