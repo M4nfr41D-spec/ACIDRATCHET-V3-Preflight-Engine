@@ -58,6 +58,9 @@ const server=http.createServer((req,res)=>{
       for(const id of ['referencePath','mufflerMode']){
         const rect=await page.locator('#'+id).boundingBox();assert.ok(rect.x>=0&&rect.x+rect.width<=390,id+' mobile bounds');
       }
+      await page.evaluate(()=>{applyVbChar('303 BASS',true);setFocus(1);});
+      await page.selectOption('#responseMode','100');await page.reload();await page.evaluate(()=>setFocus(1));
+      assert.equal(await page.inputValue('#responseMode'),'100');
       assert.deepEqual(errors,[]);
       console.log((fallback?'ScriptProcessor':'AudioWorklet')+': audio, voice routing, persistence and mobile controls passed');
       if(process.env.QA_SCREENSHOT&&!fallback){

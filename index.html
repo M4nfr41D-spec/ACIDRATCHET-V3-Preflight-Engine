@@ -19,6 +19,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <script>/* HW-Skin: per ?skin=hw|off oder Schalter in der Navigation, gemerkt in ar_skin */(function(){try{var q=new URLSearchParams(location.search).get("skin");if(q==="hw"||q==="off")localStorage.setItem("ar_skin",q);if(localStorage.getItem("ar_skin")==="hw")document.documentElement.classList.add("hw");}catch(e){}})();</script>
 <link rel="manifest" href="./manifest.webmanifest">
+<script src="./acidratchet-controls.js?v=7.6"></script>
 <script src="./acidratchet-voice.js?v=7.5"></script>
 <script src="./acidratchet-patterns.js?v=dt64-1"></script>
 <script>
@@ -468,6 +469,8 @@ html.hw .dst.cur{outline:2px solid rgba(255,255,255,.55)}
         <button class="btn play" id="playTop" type="button">&#9654; START</button>
       </div>
       <div class="df-path"><label for="referencePath">Body-Pfad </label><select id="referencePath"><option value="100">303 · durch Filter</option><option value="0">Extended · Body parallel</option></select></div>
+      <div class="df-path"><label for="responseMode">Regelweg</label><select id="responseMode"><option value="0">Direct</option><option value="100">Sweetspot</option></select><button class="btn" id="fineKnobs" type="button" aria-pressed="false">FINE</button></div>
+      <div class="df-path" id="toneStarts" aria-label="Klangstart"></div>
       <div class="lab" style="margin-top:14px">Devil Fish · Klangwege</div>
       <div class="knobs">
         <div class="kc"><div class="knob" data-k="overdrive" data-min="0" data-max="100" data-val="16.45"></div><div class="kl">Filter Drive</div><div class="kv" data-for="overdrive"></div></div>
@@ -476,7 +479,7 @@ html.hw .dst.cur{outline:2px solid rgba(255,255,255,.55)}
       </div>
       <div class="lab" style="margin-top:14px">Tone · Modulation</div>
       <div class="knobs">
-        <div class="kc"><div class="knob" data-k="tune" data-min="-12" data-max="12" data-val="0"></div><div class="kl">Tune</div><div class="kv" data-for="tune"></div></div>
+        <div class="kc"><div class="knob" data-k="tune" data-min="-24" data-max="24" data-val="0"></div><div class="kl">Tune</div><div class="kv" data-for="tune"></div></div>
         <div class="kc"><div class="knob" data-k="body" data-min="0" data-max="100" data-val="45"></div><div class="kl">Body</div><div class="kv" data-for="body"></div></div>
         <div class="kc"><div class="knob" data-k="squelch" data-min="0" data-max="100" data-val="0"></div><div class="kl">Squelch</div><div class="kv" data-for="squelch"></div></div>
         <div class="kc"><div class="knob" data-k="lfoRate" data-min="0" data-max="100" data-val="30"></div><div class="kl">LFO Rate</div><div class="kv" data-for="lfoRate"></div></div>
@@ -1414,7 +1417,7 @@ html.hw .dst.cur{outline:2px solid rgba(255,255,255,.55)}
 </script>
 <script>
 "use strict";
-var VER="7.5 DF-CANDIDATE";
+var VER="7.6 KNOBS+SWEETSPOTS";
 try{
  console.log('%c ACIDRATCHET-MF79 ','background:#aef022;color:#0a0c08;font-size:18px;font-weight:bold;padding:4px 12px;border-radius:5px');
  console.log('%c© 2026 Manfred Foissner — All rights reserved.\nUnauthorized copying, redistribution or reuse of this code is prohibited.','color:#aef022;font-size:12px;line-height:1.5');
@@ -1450,22 +1453,22 @@ function noteName(m){return NOTE_NAMES[m%12]+(Math.floor(m/12)-1);}
 
 /* ---------- STATE ---------- */
 const UI={tune:0,cutoff:42,reso:74,env:62,decay:55,accent:62,dist:20,tone:55,level:82,
-          volume:80,bpm:132,swing:0,gate:62,slide:40,body:45,squelch:0,lfoRate:30,lfoDepth:0,sub:0,detune:0,pwm:50,attack:0,release:0,reference:100,overdrive:16.45,filterFM:0,muffler:0};
+          volume:80,bpm:132,swing:0,gate:62,slide:40,body:45,squelch:0,lfoRate:30,lfoDepth:0,sub:0,detune:0,pwm:50,attack:0,release:0,reference:100,overdrive:16.45,filterFM:0,muffler:0,response:0};
 let wave=0, dirty=0, qmode=0, shiftOn=false, rateMul=0.25, lfoWave=0, lfoTarget=0;
 let lfoSync=0;
 let arpOn=false, arpMode='up', arpOct=1, arpRateMul=0.25, arpIdx=0;
 const STEPS=16;
 /* ---------- VOICE B (zweite Bassline, additiv) ---------- */
-const PVKEYS=['tune','cutoff','reso','env','decay','accent','dist','tone','level','slide','body','squelch','lfoRate','lfoDepth','sub','detune','pwm','attack','release','reference','overdrive','filterFM','muffler'];
+const PVKEYS=['tune','cutoff','reso','env','decay','accent','dist','tone','level','slide','body','squelch','lfoRate','lfoDepth','sub','detune','pwm','attack','release','reference','overdrive','filterFM','muffler','response'];
 const LABKEYS=[]; // MF84 ZDF-DSP hat keine Lab-Parameter mehr
 function pvCapture(){ var o={}; PVKEYS.forEach(k=>o[k]=UI[k]); o.wave=wave;o.dirty=dirty;o.lfoWave=lfoWave;o.lfoTarget=lfoTarget; return o; }
 let vpA=pvCapture();
 let vpB=(function(){var o=pvCapture(); o.tune=12;o.level=64;o.reso=Math.min(100,o.reso+8);o.accent=78;o.decay=42; return o;})();
 let vbFocus=0, vbOn=false, selStepB=-1;
-const DFKEYS=['reference','overdrive','filterFM','muffler'];
+const DFKEYS=['reference','overdrive','filterFM','muffler','response'];
 function saveDevilFishSettings(){try{var pack={};['a','b'].forEach(function(id){var p=id==='a'?vpA:vpB;pack[id]={};DFKEYS.forEach(function(k){pack[id][k]=p[k];});});localStorage.setItem('ar_devilfish_v75',JSON.stringify(pack));}catch(_){}}
 function loadDevilFishSettings(){try{var pack=JSON.parse(localStorage.getItem('ar_devilfish_v75')||'{}');['a','b'].forEach(function(id){var p=id==='a'?vpA:vpB;DFKEYS.forEach(function(k){var v=pack[id]&&pack[id][k];if(typeof v==='number'&&Number.isFinite(v))p[k]=clamp(v,0,100);});});DFKEYS.forEach(function(k){UI[k]=vpA[k];});}catch(_){}}
-function updateDevilFishControls(){var e=document.getElementById('referencePath');if(e)e.value=String(UI.reference>=50?100:0);var mf=document.getElementById('mufflerMode');if(mf)mf.value=String(Math.round(UI.muffler/50)*50);var body=document.querySelector('.knob[data-k="body"]');if(body){body.parentElement.style.opacity=UI.reference>=50?'.45':'1';body.parentElement.title=UI.reference>=50?'Im 303-Pfad ist der parallele Body-Zusatz aus.':'Paralleler Body-Zusatz aktiv.';}}
+function updateDevilFishControls(){var rp=document.getElementById('responseMode');if(rp)rp.value=String(UI.response>=50?100:0);var e=document.getElementById('referencePath');if(e)e.value=String(UI.reference>=50?100:0);var mf=document.getElementById('mufflerMode');if(mf)mf.value=String(Math.round(UI.muffler/50)*50);var body=document.querySelector('.knob[data-k="body"]');if(body){body.parentElement.style.opacity=UI.reference>=50?'.45':'1';body.parentElement.title=UI.reference>=50?'Im 303-Pfad ist der parallele Body-Zusatz aus.':'Paralleler Body-Zusatz aktiv.';}}
 loadDevilFishSettings();
 let stepsB=[]; for(let i=0;i<STEPS;i++) stepsB.push({on:0,note:33,accent:0,slide:0});
 let steps=[];
@@ -1486,6 +1489,7 @@ let bankNames=Array(NBANKS).fill('');
 function snapPat(){ var o={steps:steps.map(s=>({on:s.on,note:s.note,accent:s.accent,slide:s.slide,rat:s.rat||1})), len:patLen};
   if(bankLink){ o.drums={k:drumPat.k,s:drumPat.s,h:drumPat.h,o:drumPat.o}; o.b=stepsB.map(s=>({on:s.on,note:s.note,accent:s.accent,slide:s.slide})); o.bon=vbOn; }
   else { var ex=banks[curBank]; if(ex){ if(ex.drums)o.drums=ex.drums; if(ex.b)o.b=ex.b; if(typeof ex.bon==='boolean')o.bon=ex.bon; } }
+  var original=banks[curBank];if(original&&original.classic9300)o.classic9300=original.classic9300;if(original&&(original.tone||original.classic9300?.controls))o.tone={...vpA,gate:UI.gate};
   return o; }
 function applyBankExtras(p){ if(!p||!bankLink)return;
   if(p.drums){ drumPat={k:p.drums.k|0,s:p.drums.s|0,h:p.drums.h|0,o:p.drums.o|0}; renderDrums(); saveDrums(); }
@@ -1493,7 +1497,11 @@ function applyBankExtras(p){ if(!p||!bankLink)return;
   if(typeof p.bon==='boolean'){ vbOn=p.bon; setVbGain(); }
   renderStepsB(); updateVbUI(); saveVoiceB(); }
 function setBankLink(v){ bankLink=v; if(bankLink&&banks[curBank])applyBankExtras(banks[curBank]); updateDrumUI(); saveDrums(); }
-function applyPat(p){ if(!p)return; steps=p.steps.map(s=>({on:s.on,note:s.note,accent:s.accent,slide:s.slide,rat:s.rat||1})); patLen=p.len||16; selStep=-1; }
+function applyPat(p){ if(!p)return; steps=p.steps.map(s=>({on:s.on,note:s.note,accent:s.accent,slide:s.slide,rat:s.rat||1})); patLen=p.len||16; selStep=-1;
+  const tone=p.tone||(p.classic9300?.controls?ARControls.fromTranslator(p.classic9300.controls):null);
+  if(tone){UI.gate=ARControls.normalize(tone).gate;Object.assign(vpA,ARControls.normalize(tone));if(!vbFocus){Object.assign(UI,vpA);wave=vpA.wave;dirty=vpA.dirty;lfoWave=vpA.lfoWave;lfoTarget=vpA.lfoTarget;document.querySelectorAll('.knob').forEach(setKnob);setSegState('wave','w',wave);setSegState('dirty','d',dirty);updateDevilFishControls();}pushVoiceSettings(P,vpA);}
+  if(tone&&Number.isFinite(+p.classic9300?.bpm)){UI.bpm=clamp(+p.classic9300.bpm,60,200);applyParam('bpm');document.querySelectorAll('.knob[data-k="bpm"]').forEach(setKnob);}
+}
 function blankSteps(){ steps=[]; for(let i=0;i<STEPS;i++)steps.push({on:0,note:33,accent:0,slide:0,rat:1}); patLen=16; selStep=-1; }
 function saveLS(){ try{ localStorage.setItem('ar_banks',JSON.stringify({banks,cur:curBank,names:bankNames})); }catch(e){} }
 function persistBank(){ banks[curBank]=snapPat(); saveLS(); }
@@ -1668,7 +1676,8 @@ function setEngineBadge(){
 function P(k,v){ if(mode==='worklet'){ if(node)node.port.postMessage({type:'p',k,v}); } else if(voice){ voice.setP(k,v); } }
 function panic(){ if(mode==='worklet'){ if(node)node.port.postMessage({type:'panic'}); } else if(voice){ voice.panic(); } }
 function pushVoiceSettings(send,p){
-  PVKEYS.forEach(function(k){send(k,k==='tune'?p[k]:p[k]/100);});
+  const mapped=ARControls.toVoice(p);
+  PVKEYS.forEach(function(k){if(k!=='response')send(k,mapped[k]);});
   send('wave',p.wave);send('dirty',p.dirty);send('lfoWave',p.lfoWave);send('lfoTarget',p.lfoTarget||0);
   send('bpm',UI.bpm);send('lfoSync',lfoSync);
 }
@@ -1687,7 +1696,8 @@ function applyParam(k){
   if(DFKEYS.indexOf(k)>=0){saveDevilFishSettings();updateDevilFishControls();}
   var snd=vbFocus?P2:P;
   if(k==='tune'){ snd('tune',UI.tune); return; }
-  snd(k, w01(k));
+  if(k==='response'){pushVoiceSettings(snd,curVP());document.querySelectorAll('.knob').forEach(setKnob);return;}
+  snd(k, ARControls.toVoice(curVP())[k]);
 }
 function P2(k,v){ if(mode==='worklet'){ if(node2)node2.port.postMessage({type:'p',k,v}); } else if(voice2){ voice2.setP(k,v); } }
 function panic2(){ if(mode==='worklet'){ if(node2)node2.port.postMessage({type:'panic'}); } else if(voice2){ voice2.panic(); } }
@@ -1726,17 +1736,18 @@ let vbChar='';
 function applyVbChar(name,store){
   var c=VBCHARS.find(function(x){return x.n===name}); if(!c)return;
   Object.keys(c.u).forEach(function(k){ if(k in vpB) vpB[k]=c.u[k]; });
+  if(store!==false)vpB.response=0;
   vpB.wave=c.w; vpB.dirty=c.d; vpB.lfoTarget=(c.lt|0);
   vbChar=name;
   if(ctx&&ready)pushAllB();
   /* Steht der Fokus auf B, sollen die Regler den neuen Klang auch zeigen. */
   if(vbFocus===1){ Object.keys(c.u).forEach(function(k){ if(k in UI) UI[k]=c.u[k]; });
-    wave=c.w; dirty=c.d; lfoTarget=(c.lt|0); setSegState('lfoTarget','lt',lfoTarget);
+    UI.response=vpB.response;wave=c.w; dirty=c.d; lfoTarget=(c.lt|0); setSegState('lfoTarget','lt',lfoTarget);
     document.querySelectorAll('.knob').forEach(setKnob);
     document.querySelectorAll('#wave button').forEach(function(x){x.classList.toggle('on',+x.dataset.w===wave)});
     document.querySelectorAll('#dirty button').forEach(function(x){x.classList.toggle('on',+x.dataset.d===dirty)});
   }
-  updateDevilFishControls(); renderVbChars(); if(store!==false)saveVoiceB();
+  updateDevilFishControls(); renderVbChars(); if(store!==false){saveDevilFishSettings();saveVoiceB();}
 }
 function renderVbChars(){
   var g=document.getElementById('vbCharGrid'); if(!g)return;
@@ -2190,7 +2201,7 @@ window.addEventListener('storage',function(e){if(e.key==='ar_banks'||e.key==='ar
 /* ---------- KNOBS ---------- */
 function fmt(k){
   const v=UI[k];
-  if(k==='overdrive')return Math.expm1(Math.log(67.6)*v/100).toFixed(2)+'×';
+  if(k==='overdrive')return ARControls.format(k,v,UI);
   if(k==='bpm')return Math.round(v);
   if(k==='tune')return (v>0?'+':'')+Math.round(v)+'st';
   if(k==='swing')return Math.round(v)+'%';
@@ -2202,24 +2213,22 @@ function fmt(k){
 }
 function setKnob(el){
   const k=el.dataset.k,min=+el.dataset.min,max=+el.dataset.max,v=UI[k];
+  el.setAttribute('aria-valuenow',v);
   const frac=(v-min)/(max-min);
   el.style.setProperty('--deg',(-135+frac*270)+'deg');
   el.style.setProperty('--rot',(frac*270)+'deg');
   const lab=document.querySelector('.kv[data-for="'+k+'"]'); if(lab)lab.textContent=fmt(k);
 }
+let fineKnobs=false;
 document.querySelectorAll('.knob').forEach(el=>{
-  setKnob(el);
-  const min=+el.dataset.min,max=+el.dataset.max;
-  let drag=false,sy=0,sv=0;
-  const down=e=>{drag=true;sy=(e.touches?e.touches[0].clientY:e.clientY);const k=el.dataset.k;sv=UI[k];e.preventDefault(); if((k==='swing'||k==='gate'||k==='slide')&&!running){start();} };
-  const move=e=>{if(!drag)return;const y=(e.touches?e.touches[0].clientY:e.clientY);const k=el.dataset.k;
-    let nv=clamp(sv+(sy-y)/170*(max-min),min,max); if(k==='bpm')nv=Math.round(nv);
-    UI[k]=nv; setKnob(el); applyParam(k); };
-  el.addEventListener('mousedown',down); el.addEventListener('touchstart',down,{passive:false});
-  window.addEventListener('mousemove',move); window.addEventListener('touchmove',move,{passive:false});
-  window.addEventListener('mouseup',()=>drag=false); window.addEventListener('touchend',()=>drag=false);
-  el.addEventListener('dblclick',()=>{const k=el.dataset.k;const dv=(el.dataset.shiftk&&k===el.dataset.shiftk)?0:+el.dataset.val;UI[k]=dv;setKnob(el);applyParam(k);});
+  el.setAttribute('aria-label',el.parentElement.querySelector('.kl')?.textContent||el.dataset.k);
+  ARControls.bindDial(el,{get:()=>UI[el.dataset.k],set:v=>{UI[el.dataset.k]=v;setKnob(el);applyParam(el.dataset.k);},min:+el.dataset.min,max:+el.dataset.max,step:el.dataset.k==='bpm'?1:el.dataset.k==='overdrive'?.01:.1,reset:()=>el.dataset.shiftk&&el.dataset.k===el.dataset.shiftk?0:+el.dataset.val,fine:()=>fineKnobs,paint:()=>setKnob(el)});
 });
+document.getElementById('fineKnobs').onclick=function(){fineKnobs=!fineKnobs;this.classList.toggle('on',fineKnobs);this.setAttribute('aria-pressed',String(fineKnobs));};
+document.getElementById('responseMode').onchange=function(){UI.response=+this.value;applyParam('response');};
+function applyToneStart(id){const preset=ARControls.PRESETS.find(p=>p.id===id);if(!preset)return;Object.assign(UI,preset.values);wave=preset.values.wave;dirty=preset.values.dirty;lfoWave=preset.values.lfoWave;lfoTarget=preset.values.lfoTarget;Object.assign(curVP(),pvCapture());pushAll();saveDevilFishSettings();document.querySelectorAll('.knob').forEach(setKnob);setSegState('wave','w',wave);setSegState('dirty','d',dirty);setSegState('lfoWave','lw',lfoWave);setSegState('lfoTarget','lt',lfoTarget);updateDevilFishControls();}
+ARControls.PRESETS.forEach(p=>{const b=document.createElement('button');b.className='btn';b.textContent=p.name;b.type='button';b.onclick=()=>applyToneStart(p.id);document.getElementById('toneStarts').appendChild(b);});
+
 
 /* ---------- SEG SWITCHES ---------- */
 document.getElementById('wave').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
@@ -2264,7 +2273,7 @@ const MACROS={
   SCREAM: {p:{cutoff:72,reso:96,env:85,decay:38,accent:92,dist:70,tone:78,squelch:30,lfoRate:40,lfoDepth:0,body:60,sub:0,detune:18,pwm:50}, wave:0,dirty:1,lfoWave:0},
   MELT:   {p:{cutoff:40,reso:82,env:55,decay:70,accent:50,dist:22,tone:48,squelch:70,lfoRate:18,lfoDepth:60,body:55,sub:25,detune:30,pwm:60},wave:0,dirty:0,lfoWave:0},
   DESTROY:{p:{cutoff:78,reso:92,env:90,decay:45,accent:100,dist:92,tone:85,squelch:40,lfoRate:60,lfoDepth:35,body:70,sub:45,detune:25,pwm:42},wave:1,dirty:1,lfoWave:3},
-  INIT:   {p:{reference:100,overdrive:16.45,filterFM:0,muffler:0,cutoff:42,reso:74,env:62,decay:55,accent:62,dist:20,tone:55,squelch:0,lfoRate:30,lfoDepth:0,body:45,sub:0,detune:0,pwm:50},   wave:0,dirty:0,lfoWave:0}
+  INIT:   {p:{response:0,reference:100,overdrive:16.45,filterFM:0,muffler:0,cutoff:42,reso:74,env:62,decay:55,accent:62,dist:20,tone:55,squelch:0,lfoRate:30,lfoDepth:0,body:45,sub:0,detune:0,pwm:50},   wave:0,dirty:0,lfoWave:0}
 };
 let macroAnim=null;
 function setParamLive(k,v){ UI[k]=v; const el=document.querySelector('.knob[data-k="'+k+'"]'); if(el)setKnob(el); applyParam(k); }
@@ -2659,14 +2668,14 @@ Object.keys(PRESETS).forEach(name=>{const b=document.createElement('button');b.c
   b.addEventListener('click',()=>loadPreset(name));pc.appendChild(b);});
 function loadPreset(name){
   const p=PRESETS[name];
-  Object.assign(UI,p.u); wave=p.w; dirty=p.d; patLen=STEPS;
+  UI.response=0;Object.assign(UI,p.u); wave=p.w; dirty=p.d; patLen=STEPS;
   steps=[]; for(let i=0;i<STEPS;i++)steps.push({on:p.base[i],note:p.notes[i]||33,accent:p.acc.includes(i)?1:0,slide:p.sld.includes(i)?1:0});
   document.querySelectorAll('.knob').forEach(setKnob);
   document.querySelectorAll('#wave button').forEach(x=>x.classList.toggle('on',+x.dataset.w===wave));
   document.querySelectorAll('#dirty button').forEach(x=>x.classList.toggle('on',+x.dataset.d===dirty));
   document.getElementById('patName').textContent=name;
   selStep=-1;updateSel();renderSteps();
-  pushAll();
+  updateDevilFishControls();pushAll();
   if(p.dr){ drumPat={k:p.dr.k|0,s:p.dr.s|0,h:p.dr.h|0,o:p.dr.o|0}; renderDrums(); saveDrums(); }
   if(!running)start();
 }

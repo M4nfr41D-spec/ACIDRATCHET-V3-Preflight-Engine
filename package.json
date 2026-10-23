@@ -1,11 +1,12 @@
 {
   "name": "acidratchet-suite",
   "private": true,
-  "version": "7.5.0",
+  "version": "7.6.0",
   "scripts": {
-    "test": "node --test tests/voice.test.cjs",
+    "test": "node --test tests/voice.test.cjs tests/controls.test.cjs",
     "test:browser": "node tests/browser-smoke.cjs",
-    "test:patterns": "node tests/dt64-browser.cjs"
+    "test:patterns": "node tests/dt64-browser.cjs",
+    "test:translator": "node tests/translator-controls.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"
