@@ -16,7 +16,7 @@ const YEAR = 2026;
 const NOTICE = `© ${YEAR} Manfred Foissner · ACIDRATCHET · Alle Rechte vorbehalten. Proprietär – Kopieren, Weitergeben oder Wiederverwenden, ganz oder in Teilen, ist untersagt.`;
 
 const HTML = ['index.html', 'ACIDRATCHET_TD3MO_TRANSLATOR.html', 'ACIDRATCHET_FX_LAB.html', 'ACIDRATCHET_SONGBOOK.html'];
-const JS = ['acidratchet-voice.js', 'acidratchet-patterns.js', 'acidratchet-fx-core.js', 'sw.js'];
+const JS = ['acidratchet-controls.js', 'acidratchet-voice.js', 'acidratchet-patterns.js', 'acidratchet-fx-core.js', 'sw.js'];
 const COPY = ['manifest.webmanifest', 'acidratchet-fx-preset.schema.json', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 // Lokale Namen kürzen, Kommentare weg, Rechenreihenfolge NICHT anfassen (kein unsafe_math):

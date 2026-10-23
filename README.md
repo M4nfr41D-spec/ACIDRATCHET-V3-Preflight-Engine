@@ -4,7 +4,7 @@ Browser-Acid-Synth (TB-303-Stil) mit Pattern Studio, FX Lab und Songbook. Statis
 
 | Datei | Zweck |
 |---|---|
-| `index.html` + `acidratchet-voice.js` | ACIDRATCHET v7.5 Devil-Fish-Kandidat, gemeinsame Voice-Engine |
+| `index.html` + `acidratchet-voice.js` + `acidratchet-controls.js` | ACIDRATCHET v7.6, gemeinsame Voice und Klangsteuerung |
 | `ACIDRATCHET_TD3MO_TRANSLATOR.html` | Pattern Studio V3.5: Banks, Slots, Chain Builder |
 | `ACIDRATCHET_SONGBOOK.html` | Bibliothek für Chains |
 | `ACIDRATCHET_FX_LAB.html` + `acidratchet-fx-core.js` | FX-Presets (ARFX-Bridge) |
@@ -22,3 +22,8 @@ vollständiges 2x-Oversampling mit FIR-Rückrechnung. [Änderungen, Prüfungen u
 
 **Prüfen:** `npm test` (DSP, ohne Installation). Für die Browserprüfung zusätzlich
 `npm ci`, `npx playwright install chromium` und `npm run test:browser`.
+
+**v7.6:** Translator-Knobs inklusive FINE, gemeinsame Direct-/Sweetspot-Kennlinien,
+drei Klangstarts und vollständige Klangübergabe zwischen Translator und Synth.
+[Bedienung und Prüfumfang](docs/controls-v76.md). Browserprüfung des Translators:
+`npm run test:translator`; DT64: `npm run test:patterns`.
