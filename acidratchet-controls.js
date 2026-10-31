@@ -62,6 +62,17 @@
     let drag=null;
     el.tabIndex=0;el.setAttribute('role','slider');
     el.style.touchAction='none';
+    el.style.webkitUserSelect='none';
+    el.style.webkitTouchCallout='none';
+    // iOS Safari/PWA: block native vertical pan only while a rotary is touched.
+    // Keep normal document scrolling and gestures outside the dials intact.
+    const stopNativeRotaryPan=e=>{if(e.cancelable)e.preventDefault();};
+    el.addEventListener('touchstart',stopNativeRotaryPan,{passive:false});
+    el.addEventListener('touchmove',stopNativeRotaryPan,{passive:false});
+    if(typeof document!=='undefined'){
+      document.documentElement.style.overscrollBehaviorY='contain';
+      if(document.body)document.body.style.overscrollBehaviorY='contain';
+    }
     const min=()=>typeof opt.min==='function'?opt.min():opt.min;
     const max=()=>typeof opt.max==='function'?opt.max():opt.max;
     function paint(){const v=opt.get();el.setAttribute('aria-valuemin',min());el.setAttribute('aria-valuemax',max());el.setAttribute('aria-valuenow',v);if(opt.paint)opt.paint(v);}
