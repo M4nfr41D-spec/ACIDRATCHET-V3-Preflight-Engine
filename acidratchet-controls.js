@@ -87,6 +87,31 @@
       const delta={ArrowUp:amount,ArrowRight:amount,ArrowDown:-amount,ArrowLeft:-amount,PageUp:amount*10,PageDown:-amount*10}[e.key];
       if(delta!==undefined||e.key==='Home'||e.key==='End'){e.preventDefault();e.stopPropagation();set(e.key==='Home'?min():e.key==='End'?max():opt.get()+delta);}
     });
+    // Touch-safe alternative: on in-app browsers a vertical drag can dismiss
+    // the browser sheet before JavaScript receives the gesture. Provide
+    // explicit tap buttons that do not require movement.
+    if(typeof document!=='undefined'&&typeof window!=='undefined'){
+      if(!document.getElementById('ar-touch-stepper-style')){
+        const css=document.createElement('style');css.id='ar-touch-stepper-style';
+        css.textContent='.ar-touch-steps{display:none!important}@media(pointer:coarse),(max-width:1024px){.ar-touch-steps{display:flex!important;justify-content:center;gap:3px;margin:3px auto 5px;width:100%;max-width:100px}.ar-touch-steps button{flex:1;min-width:0;min-height:32px;padding:0 5px;line-height:1;touch-action:manipulation;user-select:none;-webkit-user-select:none;background:#273522;color:#d2ff8d;border:1px solid #689e43;border-radius:6px;font:700 19px system-ui,sans-serif}.ar-touch-steps button:active{background:#c6f27b;color:#111}}';
+        document.head.appendChild(css);
+      }
+      const stepper=document.createElement('div');stepper.className='ar-touch-steps';
+      const label=el.getAttribute('aria-label')||'Parameter';
+      for(const sign of [-1,1]){
+        const b=document.createElement('button');b.type='button';b.textContent=sign<0?'−':'+';
+        b.setAttribute('aria-label',(sign<0?'Decrease ':'Increase ')+label);
+        b.addEventListener('pointerdown',ev=>ev.stopPropagation());
+        b.addEventListener('click',ev=>{
+          ev.preventDefault();ev.stopPropagation();
+          const fine=!!opt.fine?.();
+          const increment=Math.max(opt.step||.1,fine?Math.max(0.1,(max()-min())/100):Math.max(1,(max()-min())/20));
+          set(opt.get()+sign*increment);
+        });
+        stepper.appendChild(b);
+      }
+      el.insertAdjacentElement('afterend',stepper);
+    }
     paint();return paint;
   }
   function upgradeRanges(root,options={}){
