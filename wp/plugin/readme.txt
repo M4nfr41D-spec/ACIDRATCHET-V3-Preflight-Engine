@@ -2,7 +2,7 @@
 Contributors: manfredfoissner
 Requires at least: 6.0
 Requires PHP: 7.4
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: Proprietär – alle Rechte vorbehalten
 
 Die ACIDRATCHET Acid-Synth-Suite auf der eigenen WordPress-Seite.
