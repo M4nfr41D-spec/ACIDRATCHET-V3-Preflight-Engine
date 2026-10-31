@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       ACIDRATCHET
  * Description:       ACIDRATCHET Acid-Synth-Suite (Synth, Pattern Studio, FX Lab, Songbook) auf der eigenen Seite – ein Widget mit Menüleiste. Elementor-Widget „ACIDRATCHET“ oder Shortcode [acidratchet].
- * Version:           1.1.1
+ * Version:           1.1.2
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Manfred Foissner
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'ACIDRATCHET_PLUGIN_VER', '1.1.1' );
+define( 'ACIDRATCHET_PLUGIN_VER', '1.1.2' );
 define( 'ACIDRATCHET_APP_VER', '{{APPVER}}' );
 define( 'ACIDRATCHET_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ACIDRATCHET_URL', plugin_dir_url( __FILE__ ) );
